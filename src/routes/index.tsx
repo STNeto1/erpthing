@@ -1,25 +1,25 @@
 import { Match, Switch, type VoidComponent } from "solid-js";
 
-import { helloQuery } from "rpc/queries";
+import { userQuery } from "rpc/queries";
 
 const Home: VoidComponent = () => {
-  const hello = helloQuery(() => ({
-    name: "from pRPC",
-  }));
+  const user = userQuery();
 
   return (
     <>
-      <h1>ERP Thing</h1>
+      <section class="container">
+        <Switch fallback={<div>Loading...</div>}>
+          <Match when={user.isLoading}>
+            <div>Loading...</div>
+          </Match>
 
-      <Switch fallback={<div>Loading...</div>}>
-        <Match when={hello.isLoading}>
-          <div>Loading...</div>
-        </Match>
-
-        <Match when={hello.data}>
-          <p class="text-lg text-gray-400">{hello.data}</p>
-        </Match>
-      </Switch>
+          <Match when={user.data}>
+            <pre>
+              <code>{JSON.stringify(user.data, null, 2)}</code>
+            </pre>
+          </Match>
+        </Switch>
+      </section>
     </>
   );
 };
