@@ -1,5 +1,6 @@
 // @refresh reload
-import "./root.css";
+import { QueryProvider } from "@prpc/solid";
+import { QueryClient } from "@tanstack/solid-query";
 import { Suspense } from "solid-js";
 import {
   Body,
@@ -7,14 +8,14 @@ import {
   FileRoutes,
   Head,
   Html,
+  Link,
   Meta,
   Routes,
   Scripts,
   Title,
-  Link,
 } from "solid-start";
-import { QueryProvider } from "@prpc/solid";
-import { QueryClient } from "@tanstack/solid-query";
+
+import "./root.css";
 
 const queryClient = new QueryClient();
 
