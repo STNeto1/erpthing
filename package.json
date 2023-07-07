@@ -13,7 +13,9 @@
     "@typescript-eslint/eslint-plugin": "^5.52.0",
     "@typescript-eslint/parser": "^5.52.0",
     "autoprefixer": "^10.4.13",
+    "drizzle-kit": "^0.19.3",
     "eslint": "^8.34.0",
+    "eslint-config-prettier": "^8.8.0",
     "eslint-plugin-solid": "^0.9.4",
     "postcss": "^8.4.21",
     "prettier": "^2.8.8",
@@ -21,10 +23,10 @@
     "solid-start-node": "^0.2.26",
     "tailwindcss": "^3.2.7",
     "typescript": "^4.9.5",
-    "vite": "^4.1.2",
-    "eslint-config-prettier": "^8.8.0"
+    "vite": "^4.1.2"
   },
   "dependencies": {
+    "@planetscale/database": "^1.8.0",
     "@prpc/solid": "^0.2.33",
     "@prpc/vite": "^0.3.21",
     "@solidjs/meta": "^0.28.2",
@@ -32,6 +34,7 @@
     "@tanstack/solid-query": "5.0.0-alpha.20",
     "class-variance-authority": "^0.6.1",
     "clsx": "^1.2.1",
+    "drizzle-orm": "^0.27.0",
     "solid-js": "^1.7.3",
     "solid-start": "^0.2.26",
     "tailwind-merge": "^1.13.2",
