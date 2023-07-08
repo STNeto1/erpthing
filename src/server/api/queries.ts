@@ -5,7 +5,7 @@ import { auth } from "~/auth/lucia.server";
 import { fetchUserFromId } from "~/db/core";
 
 export const userQuery = query$({
-  queryFn: async ({ payload, request$ }) => {
+  queryFn: async ({ request$ }) => {
     const authRequest = auth.handleRequest(request$);
     const session = await authRequest.validate();
 
