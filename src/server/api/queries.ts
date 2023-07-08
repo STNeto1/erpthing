@@ -2,7 +2,9 @@ import { query$ } from "@prpc/solid";
 import { User } from "lucia";
 
 import { auth } from "~/auth/lucia.server";
+import { db } from "~/db/connection";
 import { fetchUserFromId } from "~/db/core";
+import { tags } from "~/db/schema";
 
 export const userQuery = query$({
   queryFn: async ({ request$ }) => {
@@ -21,4 +23,11 @@ export const userQuery = query$({
     return fetchUserFromId(session.user.userId);
   },
   key: "user",
+});
+
+export const searchTagsQuery = query$({
+  queryFn: async ({}) => {
+    return db.select().from(tags);
+  },
+  key: "searchTags",
 });

@@ -45,6 +45,16 @@ export const keys = mysqlTable("auth_key", {
 });
 export type DKey = InferModel<typeof keys>;
 
+export const tags = mysqlTable("tags", {
+  id: varchar("id", {
+    length: 24,
+  }).primaryKey(),
+  name: varchar("name", {
+    length: 255,
+  }).notNull(),
+});
+export type DTag = InferModel<typeof tags>;
+
 export const userRelations = relations(users, ({ many }) => ({
   sessions: many(sessions),
   keys: many(keys),

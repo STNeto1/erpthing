@@ -8,6 +8,12 @@ dependencies:
   '@kobalte/core':
     specifier: ^0.9.8
     version: 0.9.8(solid-js@1.7.3)
+  '@modular-forms/solid':
+    specifier: ^0.18.1
+    version: 0.18.1(solid-js@1.7.3)
+  '@paralleldrive/cuid2':
+    specifier: ^2.2.1
+    version: 2.2.1
   '@planetscale/database':
     specifier: ^1.8.0
     version: 1.8.0
@@ -2045,9 +2051,22 @@ packages:
       solid-js: 1.7.3
     dev: false
 
+  /@modular-forms/solid@0.18.1(solid-js@1.7.3):
+    resolution: {integrity: sha512-MrJKyxsl570CD8eSDkbolb2oEVHt/4E73WEU7kGKAfxrkUm3FyTY15+yJjpChdo4DsR2vOqjPBCt6rFutQcWcg==}
+    peerDependencies:
+      solid-js: ^1.3.1
+    dependencies:
+      solid-js: 1.7.3
+    dev: false
+
   /@nicolo-ribaudo/semver-v6@6.3.3:
     resolution: {integrity: sha512-3Yc1fUTs69MG/uZbJlLSI3JISMn2UV2rg+1D/vROUqZyh3l6iYHCs7GMp+M40ZD7yOdDbYjJcU1oTJhrc+dGKg==}
     hasBin: true
+
+  /@noble/hashes@1.3.1:
+    resolution: {integrity: sha512-EbqwksQwz9xDRGfDST86whPBgM65E0OH/pCgqW0GBVzO22bNE+NuIbeTb714+IfSjU3aRk47EUvXIb5bTsenKA==}
+    engines: {node: '>= 16'}
+    dev: false
 
   /@nodelib/fs.scandir@2.1.5:
     resolution: {integrity: sha512-vq24Bq3ym5HEQm2NKCr3yXDwjc7vTsEThRDnkp2DK9p1uqLR+DHurm/NOTo0KG7HYHU7eppKZj3MyqYuMBf62g==}
@@ -2066,6 +2085,12 @@ packages:
     dependencies:
       '@nodelib/fs.scandir': 2.1.5
       fastq: 1.15.0
+
+  /@paralleldrive/cuid2@2.2.1:
+    resolution: {integrity: sha512-GJhHYlMhyT2gWemDL7BGMWfTNhspJKkikLKh9wAy3z4GTTINvTYALkUd+eGQK7aLeVkVzPuSA0VCT3H5eEWbbw==}
+    dependencies:
+      '@noble/hashes': 1.3.1
+    dev: false
 
   /@planetscale/database@1.8.0:
     resolution: {integrity: sha512-+zk04eXRiaJGaRnJZkCxXbBtBvQDQJXCoxqlXhLY3HzAovXfsBnh6DjXRujPRQQ7GKtT8/tOlyvZ9h6ReM+GLQ==}

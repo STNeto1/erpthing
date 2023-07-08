@@ -27,6 +27,8 @@
   },
   "dependencies": {
     "@kobalte/core": "^0.9.8",
+    "@modular-forms/solid": "^0.18.1",
+    "@paralleldrive/cuid2": "^2.2.1",
     "@planetscale/database": "^1.8.0",
     "@prpc/solid": "^0.2.33",
     "@prpc/vite": "^0.3.21",
