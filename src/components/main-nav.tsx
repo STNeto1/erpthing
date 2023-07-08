@@ -1,5 +1,6 @@
 import { A } from "@solidjs/router";
 import { Component, For, JSX } from "solid-js";
+import { useLocation } from "solid-start";
 
 import { cn } from "~/lib/utils";
 
@@ -8,9 +9,15 @@ const links = [
     title: "Dashboard",
     href: "/",
   },
+  {
+    title: "Tags",
+    href: "/tags",
+  },
 ] as const;
 
 export const MainNav: Component<JSX.HTMLAttributes<HTMLElement>> = (props) => {
+  const location = useLocation();
+
   return (
     <nav
       {...props}
@@ -25,6 +32,9 @@ export const MainNav: Component<JSX.HTMLAttributes<HTMLElement>> = (props) => {
           <A
             href={href}
             class="text-sm font-medium transition-colors hover:text-primary"
+            classList={{
+              "opacity-50": !location.pathname.startsWith(href),
+            }}
           >
             {title}
           </A>
