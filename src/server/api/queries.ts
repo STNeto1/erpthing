@@ -27,7 +27,7 @@ export const userQuery = query$({
 
 export const searchTagsQuery = query$({
   queryFn: async ({}) => {
-    return db.select().from(tags);
+    return db.select().from(tags).orderBy(tags.id);
   },
   key: "searchTags",
 });

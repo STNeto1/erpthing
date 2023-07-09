@@ -47,7 +47,7 @@ export type DKey = InferModel<typeof keys>;
 
 export const tags = mysqlTable("tags", {
   id: varchar("id", {
-    length: 24,
+    length: 26,
   }).primaryKey(),
   name: varchar("name", {
     length: 255,

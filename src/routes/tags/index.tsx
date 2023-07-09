@@ -12,6 +12,17 @@ import { searchTagsQuery } from "rpc/queries";
 import { Button } from "~/components/ui/button";
 import { FormItem, FormLabel, FormMessage } from "~/components/ui/form";
 import { Input } from "~/components/ui/input";
+import { Separator } from "~/components/ui/separator";
+import {
+  Table,
+  TableBody,
+  TableCaption,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "~/components/ui/table";
+import { typographyVariants } from "~/components/ui/typography";
 import { CreateTagSchema, createTagSchema } from "~/server/api/zod-schemas";
 
 const TagsIndexPage: VoidComponent = () => {
@@ -28,31 +39,53 @@ const TagsIndexPage: VoidComponent = () => {
   };
 
   return (
-    <section class="container">
+    <section class="container flex max-w-4xl flex-col gap-8 py-10">
       <Switch fallback={<div>Loading...</div>}>
         <Match when={searchTags.isLoading}>
           <div>Loading...</div>
         </Match>
 
         <Match when={searchTags.data}>
-          <ul>
-            <For each={searchTags.data}>{(tag) => <li>{tag.name}</li>}</For>
-          </ul>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Name</TableHead>
+                <TableHead class="text-right"></TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              <For each={searchTags.data}>
+                {(tag) => (
+                  <TableRow>
+                    <TableCell class="font-medium">{tag.name}</TableCell>
+                    <TableCell>X</TableCell>
+                  </TableRow>
+                )}
+              </For>
+            </TableBody>
+            <TableCaption>A list of the recent tags.</TableCaption>
+          </Table>
         </Match>
       </Switch>
 
-      <div class="mx-auto flex w-full flex-col justify-center space-y-6 sm:w-[350px]">
-        <Form onSubmit={handleSubmit} class="w-full space-y-4">
+      <Separator orientation={"horizontal"} />
+
+      <div class="mx-auto flex w-full flex-col justify-center space-y-6">
+        <h4 class={typographyVariants({ variant: "h4" })}>Create new tag</h4>
+
+        <Form onSubmit={handleSubmit} class="flex w-full items-end gap-8">
           <Field name="name">
             {(field, props) => (
-              <FormItem>
+              <FormItem class="w-full">
                 <FormLabel>Name</FormLabel>
                 <Input
                   id="name"
                   type="text"
                   placeholder="Tag 1"
+                  required
                   {...props}
                   value={field.value ?? ""}
+                  class="w-full"
                 />
                 <Show when={field.error}>
                   {(msg) => <FormMessage>{msg()}</FormMessage>}
@@ -61,7 +94,7 @@ const TagsIndexPage: VoidComponent = () => {
             )}
           </Field>
 
-          <Button type="submit" class="w-full" disabled={createTag.isPending}>
+          <Button type="submit" class="w-40" disabled={createTag.isPending}>
             Submit
           </Button>
         </Form>

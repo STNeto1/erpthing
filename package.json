@@ -28,7 +28,6 @@
   "dependencies": {
     "@kobalte/core": "^0.9.8",
     "@modular-forms/solid": "^0.18.1",
-    "@paralleldrive/cuid2": "^2.2.1",
     "@planetscale/database": "^1.8.0",
     "@prpc/solid": "^0.2.33",
     "@prpc/vite": "^0.3.21",
@@ -44,6 +43,7 @@
     "solid-start": "^0.2.26",
     "tailwind-merge": "^1.13.2",
     "tailwindcss-animate": "^1.0.6",
+    "ulid": "^2.3.0",
     "undici": "5.20.0",
     "zod": "^3.20.6"
   },
