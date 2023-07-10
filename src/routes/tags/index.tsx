@@ -1,7 +1,6 @@
 import {
   createForm,
   reset,
-  setValue,
   SubmitHandler,
   zodForm,
 } from "@modular-forms/solid";
@@ -38,47 +37,144 @@ import {
   TableRow,
 } from "~/components/ui/table";
 import { typographyVariants } from "~/components/ui/typography";
+import { DTag } from "~/db/schema";
 import {
   CreateTagSchema,
   createTagSchema,
   UpdateTagSchema,
 } from "~/server/api/zod-schemas";
 
-const TagsIndexPage: VoidComponent = () => {
-  const [isUpdating, setIsUpdating] = createSignal(false);
-
-  const searchTags = searchTagsQuery();
-
+const CreateTagForm: VoidComponent<{ onCompleted: () => void }> = (props) => {
   const createTag = createTagMutation();
-  const updateTag = updateTagMutation();
-  const deleteTag = deleteTagMutation();
 
-  const [createTagForm, Create$] = createForm<CreateTagSchema>({
+  const [createTagForm, { Field, Form }] = createForm<CreateTagSchema>({
     validate: zodForm(createTagSchema),
   });
   const handleCreateSubmit: SubmitHandler<CreateTagSchema> = async (data) => {
     await createTag.mutateAsync(data);
-    searchTags.refetch();
     reset(createTagForm, "name");
+
+    props.onCompleted();
   };
 
-  const [updateTagForm, Update$] = createForm<UpdateTagSchema>({
+  return (
+    <div class="mx-auto flex w-full flex-col justify-center space-y-6">
+      <h4 class={typographyVariants({ variant: "h4" })}>Create new tag</h4>
+      <Form
+        onSubmit={handleCreateSubmit}
+        class="flex w-full flex-col items-end gap-4"
+      >
+        <Field name="name">
+          {(field, props) => (
+            <FormItem class="w-full">
+              <FormLabel>Name</FormLabel>
+              <Input
+                id="name"
+                type="text"
+                placeholder="Tag 1"
+                required
+                {...props}
+                value={field.value ?? ""}
+                class="w-full"
+              />
+              <Show when={field.error}>
+                {(msg) => <FormMessage>{msg()}</FormMessage>}
+              </Show>
+            </FormItem>
+          )}
+        </Field>
+
+        <Button type="submit" class="w-40" disabled={createTag.isPending}>
+          Submit
+        </Button>
+      </Form>
+    </div>
+  );
+};
+
+const UpdateTagForm: VoidComponent<{
+  data: DTag;
+  onCompleted: () => void;
+}> = (props) => {
+  const updateTag = updateTagMutation();
+
+  const [updateTagForm, { Form, Field }] = createForm<UpdateTagSchema>({
     validate: zodForm(createTagSchema),
+    initialValues: {
+      id: props.data.id,
+      name: props.data.name,
+    },
   });
   const handleUpdateSubmit: SubmitHandler<UpdateTagSchema> = async (data) => {
     await updateTag.mutateAsync(data);
-    searchTags.refetch();
-
     reset(updateTagForm, "name");
-    setIsUpdating(false);
+
+    props.onCompleted();
   };
+
+  return (
+    <div class="mx-auto flex w-full flex-col justify-center space-y-6">
+      <h4 class={typographyVariants({ variant: "h4" })}>Update existing tag</h4>
+
+      <Form
+        onSubmit={handleUpdateSubmit}
+        class="flex w-full flex-col items-end gap-4"
+      >
+        <Field name="id">
+          {(field, props) => (
+            <FormItem class="hidden ">
+              <Input
+                id="id"
+                type="text"
+                required
+                {...props}
+                value={field.value ?? ""}
+                class="w-full"
+              />
+            </FormItem>
+          )}
+        </Field>
+
+        <Field name="name">
+          {(field, props) => (
+            <FormItem class="w-full">
+              <FormLabel>Name</FormLabel>
+              <Input
+                id="name"
+                type="text"
+                placeholder="Tag 1"
+                required
+                {...props}
+                value={field.value ?? ""}
+                class="w-full"
+              />
+              <Show when={field.error}>
+                {(msg) => <FormMessage>{msg()}</FormMessage>}
+              </Show>
+            </FormItem>
+          )}
+        </Field>
+
+        <Button type="submit" class="w-40" disabled={updateTag.isPending}>
+          Submit
+        </Button>
+      </Form>
+    </div>
+  );
+};
+
+const TagsIndexPage: VoidComponent = () => {
+  const [isUpdating, setIsUpdating] = createSignal<DTag | null>(null);
+
+  const searchTags = searchTagsQuery();
+
+  const deleteTag = deleteTagMutation();
+
   const handleStartUpdate = (id: string) => {
     const tag = searchTags.data?.find((t) => t.id === id);
     if (!tag) return;
 
-    setIsUpdating(true);
-    setValue(updateTagForm, "id", tag.id);
-    setValue(updateTagForm, "name", tag.name);
+    setIsUpdating(tag);
   };
 
   const handleDelete = async (id: string) => {
@@ -143,97 +239,24 @@ const TagsIndexPage: VoidComponent = () => {
       </Show>
 
       <Show when={isUpdating()}>
-        <Separator orientation={"horizontal"} />
+        {(tag) => (
+          <>
+            <Separator orientation={"horizontal"} />
 
-        <div class="mx-auto flex w-full flex-col justify-center space-y-6">
-          <h4 class={typographyVariants({ variant: "h4" })}>
-            Update existing tag
-          </h4>
-
-          <Update$.Form
-            onSubmit={handleUpdateSubmit}
-            class="flex w-full flex-col items-end gap-4"
-          >
-            <Update$.Field name="id">
-              {(field, props) => (
-                <FormItem class="hidden">
-                  <FormLabel>ID</FormLabel>
-                  <Input
-                    id="id"
-                    type="text"
-                    required
-                    {...props}
-                    value={field.value ?? ""}
-                    class="w-full"
-                  />
-                  <Show when={field.error}>
-                    {(msg) => <FormMessage>{msg()}</FormMessage>}
-                  </Show>
-                </FormItem>
-              )}
-            </Update$.Field>
-
-            <Update$.Field name="name">
-              {(field, props) => (
-                <FormItem class="w-full">
-                  <FormLabel>Name</FormLabel>
-                  <Input
-                    id="name"
-                    type="text"
-                    placeholder="Tag 1"
-                    required
-                    {...props}
-                    value={field.value ?? ""}
-                    class="w-full"
-                  />
-                  <Show when={field.error}>
-                    {(msg) => <FormMessage>{msg()}</FormMessage>}
-                  </Show>
-                </FormItem>
-              )}
-            </Update$.Field>
-
-            <Button type="submit" class="w-40" disabled={updateTag.isPending}>
-              Submit
-            </Button>
-          </Update$.Form>
-        </div>
+            <UpdateTagForm
+              data={tag()}
+              onCompleted={() => {
+                setIsUpdating(null);
+                searchTags.refetch();
+              }}
+            />
+          </>
+        )}
       </Show>
 
       <Separator orientation={"horizontal"} />
 
-      <div class="mx-auto flex w-full flex-col justify-center space-y-6">
-        <h4 class={typographyVariants({ variant: "h4" })}>Create new tag</h4>
-
-        <Create$.Form
-          onSubmit={handleCreateSubmit}
-          class="flex w-full flex-col items-end gap-4"
-        >
-          <Create$.Field name="name">
-            {(field, props) => (
-              <FormItem class="w-full">
-                <FormLabel>Name</FormLabel>
-                <Input
-                  id="name"
-                  type="text"
-                  placeholder="Tag 1"
-                  required
-                  {...props}
-                  value={field.value ?? ""}
-                  class="w-full"
-                />
-                <Show when={field.error}>
-                  {(msg) => <FormMessage>{msg()}</FormMessage>}
-                </Show>
-              </FormItem>
-            )}
-          </Create$.Field>
-
-          <Button type="submit" class="w-40" disabled={createTag.isPending}>
-            Submit
-          </Button>
-        </Create$.Form>
-      </div>
+      <CreateTagForm onCompleted={() => searchTags.refetch()} />
     </section>
   );
 };
