@@ -4,6 +4,7 @@ import {
   float,
   int,
   mysqlTableCreator,
+  primaryKey,
   text,
   timestamp,
   varchar,
@@ -85,6 +86,22 @@ export const items = mysqlTable("items", {
 });
 export type DItem = InferModel<typeof items>;
 
+export const itemsToTags = mysqlTable(
+  "items_to_tags",
+  {
+    itemID: varchar("item_id", {
+      length: 26,
+    }),
+    tagID: varchar("tag_id", {
+      length: 26,
+    }),
+  },
+  (t) => ({
+    pk: primaryKey(t.itemID, t.tagID),
+  }),
+);
+export type DItemsToTags = InferModel<typeof itemsToTags>;
+
 export const userRelations = relations(users, ({ many }) => ({
   sessions: many(sessions),
   keys: many(keys),
@@ -104,9 +121,25 @@ export const keyRelations = relations(keys, ({ one }) => ({
   }),
 }));
 
-export const itemsRelations = relations(items, ({ one }) => ({
+export const itemsRelations = relations(items, ({ one, many }) => ({
   user: one(users, {
     fields: [items.userID],
     references: [users.id],
+  }),
+  tags: many(itemsToTags),
+}));
+
+export const tagsRelations = relations(tags, ({ many }) => ({
+  items: many(itemsToTags),
+}));
+
+export const itemsToTagsRelations = relations(itemsToTags, ({ one }) => ({
+  item: one(items, {
+    fields: [itemsToTags.itemID],
+    references: [items.id],
+  }),
+  tag: one(tags, {
+    fields: [itemsToTags.tagID],
+    references: [tags.id],
   }),
 }));

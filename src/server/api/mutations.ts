@@ -1,10 +1,10 @@
 import { mutation$ } from "@prpc/solid";
-import { and, eq, isNull, sql } from "drizzle-orm";
+import { and, eq, inArray, isNull, sql } from "drizzle-orm";
 import { ulid } from "ulid";
 
 import { auth } from "~/auth/lucia.server";
 import { db } from "~/db/connection";
-import { items, tags } from "~/db/schema";
+import { items, itemsToTags, tags } from "~/db/schema";
 import {
   createItemSchema,
   createTagSchema,
@@ -53,29 +53,68 @@ export const createItemMutation = mutation$({
     const authRequest = auth.handleRequest(request$);
     const session = await authRequest.validate();
 
-    await db.insert(items).values({
-      id: ulid(),
-      name: payload.name,
-      description: payload.description,
-      stock: payload.stock,
-      price: payload.price,
-      userID: session.user.userId,
+    await db.transaction(async (tx) => {
+      const _tags = await tx
+        .select()
+        .from(tags)
+        .where(inArray(tags.id, payload.tags));
+      if (_tags.length !== payload.tags.length) {
+        throw new Error("Invalid tags");
+      }
+
+      const itemID = ulid();
+
+      await tx.insert(items).values({
+        id: itemID,
+        name: payload.name,
+        description: payload.description,
+        stock: payload.stock,
+        price: payload.price,
+        userID: session.user.userId,
+      });
+
+      await tx.insert(itemsToTags).values(
+        payload.tags.map((tagID) => ({
+          itemID,
+          tagID,
+        })),
+      );
     });
   },
   key: "createItemMutation",
   schema: createItemSchema,
 });
+
 export const updateItemMutation = mutation$({
   mutationFn: async ({ payload }) => {
-    await db
-      .update(items)
-      .set({
-        name: payload.name,
-        description: payload.description,
-        stock: payload.stock,
-        price: payload.price,
-      })
-      .where(and(eq(items.id, payload.id), isNull(items.deletedAt)));
+    await db.transaction(async (tx) => {
+      const _tags = await tx
+        .select()
+        .from(tags)
+        .where(inArray(tags.id, payload.tags));
+      if (_tags.length !== payload.tags.length) {
+        throw new Error("Invalid tags");
+      }
+
+      await tx
+        .update(items)
+        .set({
+          name: payload.name,
+          description: payload.description,
+          stock: payload.stock,
+          price: payload.price,
+        })
+        .where(and(eq(items.id, payload.id), isNull(items.deletedAt)));
+
+      await tx.delete(itemsToTags).where(eq(itemsToTags.itemID, payload.id));
+
+      await tx.insert(itemsToTags).values(
+        payload.tags.map((tagID) => ({
+          itemID: payload.id,
+          tagID,
+        })),
+      );
+    });
   },
   key: "updateItemMutation",
   schema: updateItemSchema,

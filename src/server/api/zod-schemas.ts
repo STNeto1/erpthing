@@ -22,6 +22,7 @@ export const createItemSchema = z.object({
   description: z.string().min(4),
   stock: z.number().min(0),
   price: z.number().min(0),
+  tags: z.array(z.string()),
 });
 export type CreateItemSchema = z.infer<typeof createItemSchema>;
 
@@ -31,6 +32,7 @@ export const updateItemSchema = z.object({
   description: z.string().min(4),
   stock: z.number().min(0),
   price: z.number().min(0),
+  tags: z.array(z.string()),
 });
 export type UpdateItemSchema = z.infer<typeof updateItemSchema>;
 

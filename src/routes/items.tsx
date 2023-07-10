@@ -12,7 +12,7 @@ import {
   deleteItemMutation,
   updateItemMutation,
 } from "rpc/mutations";
-import { searchItemsQuery } from "rpc/queries";
+import { searchItemsQuery, searchTagsQuery } from "rpc/queries";
 import {
   CreateItemSchema,
   createItemSchema,
@@ -23,6 +23,7 @@ import {
 import { MainNav } from "~/components/main-nav";
 import { Alert, AlertDescription, AlertTitle } from "~/components/ui/alert";
 import { Button } from "~/components/ui/button";
+import { checkboxStyles } from "~/components/ui/checkbox";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -33,6 +34,7 @@ import {
 } from "~/components/ui/dropdown-menu";
 import { FormItem, FormLabel, FormMessage } from "~/components/ui/form";
 import { Input } from "~/components/ui/input";
+import { Label } from "~/components/ui/label";
 import { Separator } from "~/components/ui/separator";
 import {
   Table,
@@ -44,13 +46,21 @@ import {
 } from "~/components/ui/table";
 import { typographyVariants } from "~/components/ui/typography";
 import { UserNav } from "~/components/user-nav";
-import { DItem } from "~/db/schema";
+import { DItem, DItemsToTags, DUser } from "~/db/schema";
 
 const CreateItemForm: VoidComponent<{ onCompleted: () => void }> = (props) => {
   const createItem = createItemMutation();
+  const searchTags = searchTagsQuery();
 
   const [createTagForm, { Field, Form }] = createForm<CreateItemSchema>({
     validate: zodForm(createItemSchema),
+    initialValues: {
+      name: "",
+      description: "",
+      stock: 0,
+      price: 0,
+      tags: [],
+    },
   });
   const handleCreateSubmit: SubmitHandler<CreateItemSchema> = async (data) => {
     await createItem.mutateAsync(data);
@@ -59,6 +69,7 @@ const CreateItemForm: VoidComponent<{ onCompleted: () => void }> = (props) => {
     reset(createTagForm, "description");
     reset(createTagForm, "stock");
     reset(createTagForm, "price");
+    reset(createTagForm, "tags");
 
     props.onCompleted();
   };
@@ -152,6 +163,35 @@ const CreateItemForm: VoidComponent<{ onCompleted: () => void }> = (props) => {
           )}
         </Field>
 
+        <Field name="tags" type="string[]">
+          {(field, props) => (
+            <FormItem class="w-full">
+              <FormLabel>Tags</FormLabel>
+              <div class="grid grid-cols-4 gap-4 pt-1">
+                <For each={searchTags.data ?? []}>
+                  {(tag) => (
+                    <div class="flex items-center gap-2">
+                      <input
+                        id={tag.id}
+                        type="checkbox"
+                        checked={field.value?.includes(tag.id)}
+                        value={tag.id}
+                        {...props}
+                        class={checkboxStyles}
+                      />
+                      <Label>{tag.name}</Label>
+                    </div>
+                  )}
+                </For>
+              </div>
+
+              <Show when={field?.error}>
+                {(msg) => <FormMessage>{msg()}</FormMessage>}
+              </Show>
+            </FormItem>
+          )}
+        </Field>
+
         <Button type="submit" class="w-40" disabled={createItem.isPending}>
           Submit
         </Button>
@@ -160,11 +200,14 @@ const CreateItemForm: VoidComponent<{ onCompleted: () => void }> = (props) => {
   );
 };
 
+type UpdateItem = DItem & { user: DUser; tags: DItemsToTags[] };
+
 const UpdateItemForm: VoidComponent<{
-  data: DItem;
+  data: UpdateItem;
   onCompleted: () => void;
 }> = (props) => {
   const updateItem = updateItemMutation();
+  const searchTags = searchTagsQuery();
 
   const [_, { Form, Field }] = createForm<UpdateItemSchema>({
     validate: zodForm(updateTagSchema),
@@ -174,6 +217,7 @@ const UpdateItemForm: VoidComponent<{
       description: props.data.description,
       stock: props.data.stock,
       price: props.data.price,
+      tags: props.data.tags.map((t) => t.tagID).filter(Boolean) as string[],
     },
   });
   const handleUpdateSubmit: SubmitHandler<UpdateItemSchema> = async (data) => {
@@ -287,6 +331,35 @@ const UpdateItemForm: VoidComponent<{
           )}
         </Field>
 
+        <Field name="tags" type="string[]">
+          {(field, props) => (
+            <FormItem class="w-full">
+              <FormLabel>Tags</FormLabel>
+              <div class="grid grid-cols-4 gap-4 pt-1">
+                <For each={searchTags.data ?? []}>
+                  {(tag) => (
+                    <div class="flex items-center gap-2">
+                      <input
+                        id={tag.id}
+                        type="checkbox"
+                        checked={field.value?.includes(tag.id)}
+                        value={tag.id}
+                        {...props}
+                        class={checkboxStyles}
+                      />
+                      <Label>{tag.name}</Label>
+                    </div>
+                  )}
+                </For>
+              </div>
+
+              <Show when={field?.error}>
+                {(msg) => <FormMessage>{msg()}</FormMessage>}
+              </Show>
+            </FormItem>
+          )}
+        </Field>
+
         <Button type="submit" class="w-40" disabled={updateItem.isPending}>
           Submit
         </Button>
@@ -296,7 +369,7 @@ const UpdateItemForm: VoidComponent<{
 };
 
 const ItemsIndexPage: VoidComponent = () => {
-  const [isUpdating, setIsUpdating] = createSignal<DItem | null>(null);
+  const [isUpdating, setIsUpdating] = createSignal<UpdateItem | null>(null);
 
   const searchItems = searchItemsQuery();
   const deleteItem = deleteItemMutation();
@@ -324,68 +397,7 @@ const ItemsIndexPage: VoidComponent = () => {
         </div>
       </div>
 
-      <section class="container flex max-w-5xl flex-col gap-8 py-10">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Name</TableHead>
-              <TableHead>Description</TableHead>
-              <TableHead>Price</TableHead>
-              <TableHead>Stock</TableHead>
-              <TableHead class="text-right"></TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            <For each={searchItems?.data ?? []}>
-              {(tag) => (
-                <TableRow>
-                  <TableCell class="w-[30%] font-medium">{tag.name}</TableCell>
-                  <TableCell class="w-[40%] font-medium">
-                    {tag.description}
-                  </TableCell>
-                  <TableCell class="w-[10%] font-medium">{tag.price}</TableCell>
-                  <TableCell class="w-[10%] font-medium">{tag.stock}</TableCell>
-                  <TableCell class="w-[10%] font-medium">
-                    <DropdownMenu>
-                      <DropdownMenuTrigger class="flex items-center ">
-                        <BsThreeDots class="h-5 w-5" />
-                      </DropdownMenuTrigger>
-
-                      <DropdownMenuPortal>
-                        <DropdownMenuContent class="w-40">
-                          <DropdownMenuItem
-                            class="py-0"
-                            onSelect={() => handleStartUpdate(tag.id)}
-                            disabled={deleteItem.isPending}
-                          >
-                            <DropdownMenuLabel>Edit</DropdownMenuLabel>
-                          </DropdownMenuItem>
-
-                          <DropdownMenuItem
-                            class="py-0"
-                            onSelect={() => handleDelete(tag.id)}
-                            disabled={deleteItem.isPending}
-                          >
-                            <DropdownMenuLabel>Delete</DropdownMenuLabel>
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenuPortal>
-                    </DropdownMenu>
-                  </TableCell>
-                </TableRow>
-              )}
-            </For>
-          </TableBody>
-        </Table>
-        <Show when={deleteItem.error}>
-          {(err) => (
-            <Alert variant="destructive" class="w-full">
-              <AlertTitle>Error</AlertTitle>
-              <AlertDescription>{err().message}</AlertDescription>
-            </Alert>
-          )}
-        </Show>
-
+      <section class="container flex max-w-7xl flex-col gap-8 py-10">
         <Show when={!!isUpdating()}>
           {(_) => (
             <>
@@ -408,6 +420,80 @@ const ItemsIndexPage: VoidComponent = () => {
               <Separator orientation={"horizontal"} />
               <CreateItemForm onCompleted={() => searchItems.refetch()} />
             </>
+          )}
+        </Show>
+
+        <Separator orientation={"horizontal"} />
+
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Name</TableHead>
+              <TableHead>Description</TableHead>
+
+              <TableHead>User</TableHead>
+              <TableHead>Price</TableHead>
+              <TableHead>Stock</TableHead>
+
+              <TableHead class="text-right"></TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            <For each={searchItems?.data ?? []}>
+              {(elem) => (
+                <TableRow>
+                  <TableCell class="w-[20%] font-medium">{elem.name}</TableCell>
+                  <TableCell class="w-[30%] font-medium">
+                    {elem.description}
+                  </TableCell>
+
+                  <TableCell class="w-[12.5%] font-medium">
+                    {elem.user.name}
+                  </TableCell>
+                  <TableCell class="w-[7.5%] font-medium">
+                    {elem.price}
+                  </TableCell>
+                  <TableCell class="w-[7.5%] font-medium">
+                    {elem.stock}
+                  </TableCell>
+                  <TableCell class="w-[5%] font-medium">
+                    <DropdownMenu>
+                      <DropdownMenuTrigger class="flex items-center ">
+                        <BsThreeDots class="h-5 w-5" />
+                      </DropdownMenuTrigger>
+
+                      <DropdownMenuPortal>
+                        <DropdownMenuContent class="w-40">
+                          <DropdownMenuItem
+                            class="py-0"
+                            onSelect={() => handleStartUpdate(elem.id)}
+                            disabled={deleteItem.isPending}
+                          >
+                            <DropdownMenuLabel>Edit</DropdownMenuLabel>
+                          </DropdownMenuItem>
+
+                          <DropdownMenuItem
+                            class="py-0"
+                            onSelect={() => handleDelete(elem.id)}
+                            disabled={deleteItem.isPending}
+                          >
+                            <DropdownMenuLabel>Delete</DropdownMenuLabel>
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenuPortal>
+                    </DropdownMenu>
+                  </TableCell>
+                </TableRow>
+              )}
+            </For>
+          </TableBody>
+        </Table>
+        <Show when={deleteItem.error}>
+          {(err) => (
+            <Alert variant="destructive" class="w-full">
+              <AlertTitle>Error</AlertTitle>
+              <AlertDescription>{err().message}</AlertDescription>
+            </Alert>
           )}
         </Show>
       </section>

@@ -37,6 +37,10 @@ export const searchItemsQuery = query$({
   queryFn: async ({}) => {
     return db.query.items.findMany({
       where: isNull(items.deletedAt),
+      with: {
+        user: true,
+        tags: true,
+      },
     });
   },
   key: "searchItems",
