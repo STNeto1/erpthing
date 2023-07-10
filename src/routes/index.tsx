@@ -2,11 +2,8 @@ import { type VoidComponent } from "solid-js";
 
 import { MainNav } from "~/components/main-nav";
 import { UserNav } from "~/components/user-nav";
-import { userQuery } from "~/server/api/queries";
 
 const Home: VoidComponent = () => {
-  const user = userQuery();
-
   return (
     <>
       <div class="border-b">
