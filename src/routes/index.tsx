@@ -5,7 +5,7 @@ import { UserNav } from "~/components/user-nav";
 
 const Home: VoidComponent = () => {
   return (
-    <>
+    <main class="min-h-screen">
       <div class="border-b">
         <div class="flex h-16 items-center px-4">
           <MainNav class="mx-6" />
@@ -14,6 +14,7 @@ const Home: VoidComponent = () => {
           </div>
         </div>
       </div>
+
       <section class="container">
         {/* <Switch fallback={<div>Loading...</div>}>
           <Match when={user.isLoading}>
@@ -27,7 +28,7 @@ const Home: VoidComponent = () => {
           </Match>
         </Switch> */}
       </section>
-    </>
+    </main>
   );
 };
 

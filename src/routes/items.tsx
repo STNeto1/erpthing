@@ -20,6 +20,7 @@ import {
   updateTagSchema,
 } from "rpc/zod-schemas";
 
+import { MainNav } from "~/components/main-nav";
 import { Alert, AlertDescription, AlertTitle } from "~/components/ui/alert";
 import { Button } from "~/components/ui/button";
 import {
@@ -42,6 +43,7 @@ import {
   TableRow,
 } from "~/components/ui/table";
 import { typographyVariants } from "~/components/ui/typography";
+import { UserNav } from "~/components/user-nav";
 import { DItem } from "~/db/schema";
 
 const CreateItemForm: VoidComponent<{ onCompleted: () => void }> = (props) => {
@@ -312,93 +314,104 @@ const ItemsIndexPage: VoidComponent = () => {
   };
 
   return (
-    <section class="container flex max-w-5xl flex-col gap-8 py-10">
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead>Name</TableHead>
-            <TableHead>Description</TableHead>
-            <TableHead>Price</TableHead>
-            <TableHead>Stock</TableHead>
-            <TableHead class="text-right"></TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          <For each={searchItems?.data ?? []}>
-            {(tag) => (
-              <TableRow>
-                <TableCell class="w-[30%] font-medium">{tag.name}</TableCell>
-                <TableCell class="w-[40%] font-medium">
-                  {tag.description}
-                </TableCell>
-                <TableCell class="w-[10%] font-medium">{tag.price}</TableCell>
-                <TableCell class="w-[10%] font-medium">{tag.stock}</TableCell>
-                <TableCell class="w-[10%] font-medium">
-                  <DropdownMenu>
-                    <DropdownMenuTrigger class="flex items-center ">
-                      <BsThreeDots class="h-5 w-5" />
-                    </DropdownMenuTrigger>
+    <main class="min-h-screen">
+      <div class="border-b">
+        <div class="flex h-16 items-center px-4">
+          <MainNav class="mx-6" />
+          <div class="ml-auto flex items-center space-x-4">
+            <UserNav />
+          </div>
+        </div>
+      </div>
 
-                    <DropdownMenuPortal>
-                      <DropdownMenuContent class="w-40">
-                        <DropdownMenuItem
-                          class="py-0"
-                          onSelect={() => handleStartUpdate(tag.id)}
-                          disabled={deleteItem.isPending}
-                        >
-                          <DropdownMenuLabel>Edit</DropdownMenuLabel>
-                        </DropdownMenuItem>
+      <section class="container flex max-w-5xl flex-col gap-8 py-10">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Name</TableHead>
+              <TableHead>Description</TableHead>
+              <TableHead>Price</TableHead>
+              <TableHead>Stock</TableHead>
+              <TableHead class="text-right"></TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            <For each={searchItems?.data ?? []}>
+              {(tag) => (
+                <TableRow>
+                  <TableCell class="w-[30%] font-medium">{tag.name}</TableCell>
+                  <TableCell class="w-[40%] font-medium">
+                    {tag.description}
+                  </TableCell>
+                  <TableCell class="w-[10%] font-medium">{tag.price}</TableCell>
+                  <TableCell class="w-[10%] font-medium">{tag.stock}</TableCell>
+                  <TableCell class="w-[10%] font-medium">
+                    <DropdownMenu>
+                      <DropdownMenuTrigger class="flex items-center ">
+                        <BsThreeDots class="h-5 w-5" />
+                      </DropdownMenuTrigger>
 
-                        <DropdownMenuItem
-                          class="py-0"
-                          onSelect={() => handleDelete(tag.id)}
-                          disabled={deleteItem.isPending}
-                        >
-                          <DropdownMenuLabel>Delete</DropdownMenuLabel>
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenuPortal>
-                  </DropdownMenu>
-                </TableCell>
-              </TableRow>
-            )}
-          </For>
-        </TableBody>
-      </Table>
-      <Show when={deleteItem.error}>
-        {(err) => (
-          <Alert variant="destructive" class="w-full">
-            <AlertTitle>Error</AlertTitle>
-            <AlertDescription>{err().message}</AlertDescription>
-          </Alert>
-        )}
-      </Show>
+                      <DropdownMenuPortal>
+                        <DropdownMenuContent class="w-40">
+                          <DropdownMenuItem
+                            class="py-0"
+                            onSelect={() => handleStartUpdate(tag.id)}
+                            disabled={deleteItem.isPending}
+                          >
+                            <DropdownMenuLabel>Edit</DropdownMenuLabel>
+                          </DropdownMenuItem>
 
-      <Show when={!!isUpdating()}>
-        {(_) => (
-          <>
-            <Separator orientation={"horizontal"} />
+                          <DropdownMenuItem
+                            class="py-0"
+                            onSelect={() => handleDelete(tag.id)}
+                            disabled={deleteItem.isPending}
+                          >
+                            <DropdownMenuLabel>Delete</DropdownMenuLabel>
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenuPortal>
+                    </DropdownMenu>
+                  </TableCell>
+                </TableRow>
+              )}
+            </For>
+          </TableBody>
+        </Table>
+        <Show when={deleteItem.error}>
+          {(err) => (
+            <Alert variant="destructive" class="w-full">
+              <AlertTitle>Error</AlertTitle>
+              <AlertDescription>{err().message}</AlertDescription>
+            </Alert>
+          )}
+        </Show>
 
-            <UpdateItemForm
-              data={isUpdating()!}
-              onCompleted={() => {
-                setIsUpdating(null);
-                searchItems.refetch();
-              }}
-            />
-          </>
-        )}
-      </Show>
+        <Show when={!!isUpdating()}>
+          {(_) => (
+            <>
+              <Separator orientation={"horizontal"} />
 
-      <Show when={!isUpdating()}>
-        {(_) => (
-          <>
-            <Separator orientation={"horizontal"} />
-            <CreateItemForm onCompleted={() => searchItems.refetch()} />
-          </>
-        )}
-      </Show>
-    </section>
+              <UpdateItemForm
+                data={isUpdating()!}
+                onCompleted={() => {
+                  setIsUpdating(null);
+                  searchItems.refetch();
+                }}
+              />
+            </>
+          )}
+        </Show>
+
+        <Show when={!isUpdating()}>
+          {(_) => (
+            <>
+              <Separator orientation={"horizontal"} />
+              <CreateItemForm onCompleted={() => searchItems.refetch()} />
+            </>
+          )}
+        </Show>
+      </section>
+    </main>
   );
 };
 
