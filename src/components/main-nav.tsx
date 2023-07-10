@@ -13,6 +13,10 @@ const links = [
     title: "Tags",
     href: "/tags",
   },
+  {
+    title: "Items",
+    href: "/items",
+  },
 ] as const;
 
 export const MainNav: Component<JSX.HTMLAttributes<HTMLElement>> = (props) => {

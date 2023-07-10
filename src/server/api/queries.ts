@@ -1,10 +1,11 @@
 import { query$ } from "@prpc/solid";
+import { isNull } from "drizzle-orm";
 import { User } from "lucia";
 
 import { auth } from "~/auth/lucia.server";
 import { db } from "~/db/connection";
 import { fetchUserFromId } from "~/db/core";
-import { tags } from "~/db/schema";
+import { items, tags } from "~/db/schema";
 
 export const userQuery = query$({
   queryFn: async ({ request$ }) => {
@@ -30,4 +31,13 @@ export const searchTagsQuery = query$({
     return db.select().from(tags).orderBy(tags.id);
   },
   key: "searchTags",
+});
+
+export const searchItemsQuery = query$({
+  queryFn: async ({}) => {
+    return db.query.items.findMany({
+      where: isNull(items.deletedAt),
+    });
+  },
+  key: "searchItems",
 });

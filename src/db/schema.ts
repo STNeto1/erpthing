@@ -1,5 +1,13 @@
 import { InferModel, relations } from "drizzle-orm";
-import { bigint, mysqlTableCreator, varchar } from "drizzle-orm/mysql-core";
+import {
+  bigint,
+  float,
+  int,
+  mysqlTableCreator,
+  text,
+  timestamp,
+  varchar,
+} from "drizzle-orm/mysql-core";
 
 const mysqlTable = mysqlTableCreator((name) => `erp_${name}`);
 
@@ -55,6 +63,28 @@ export const tags = mysqlTable("tags", {
 });
 export type DTag = InferModel<typeof tags>;
 
+export const items = mysqlTable("items", {
+  id: varchar("id", {
+    length: 26,
+  }).primaryKey(),
+  name: varchar("name", {
+    length: 255,
+  }).notNull(),
+  description: text("description").notNull(),
+  stock: int("stock").notNull(),
+  price: float("price").notNull(),
+  userID: varchar("user_id", {
+    length: 50,
+  }).notNull(),
+  createdAt: timestamp("created_at", {
+    mode: "string",
+  }).defaultNow(),
+  deletedAt: timestamp("deleted_at", {
+    mode: "string",
+  }),
+});
+export type DItem = InferModel<typeof items>;
+
 export const userRelations = relations(users, ({ many }) => ({
   sessions: many(sessions),
   keys: many(keys),
@@ -70,6 +100,13 @@ export const sessionRelations = relations(sessions, ({ one }) => ({
 export const keyRelations = relations(keys, ({ one }) => ({
   user: one(users, {
     fields: [keys.userId],
+    references: [users.id],
+  }),
+}));
+
+export const itemsRelations = relations(items, ({ one }) => ({
+  user: one(users, {
+    fields: [items.userID],
     references: [users.id],
   }),
 }));
