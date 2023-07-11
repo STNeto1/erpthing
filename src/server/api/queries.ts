@@ -76,3 +76,14 @@ export const showItemQuery = query$({
     id: z.string(),
   }),
 });
+
+export const searchOrdersQuery = query$({
+  queryFn: async ({}) => {
+    return db.query.orders.findMany({
+      with: {
+        user: true,
+      },
+    });
+  },
+  key: "searchOrders",
+});

@@ -102,6 +102,27 @@ export const itemsToTags = mysqlTable(
 );
 export type DItemsToTags = InferModel<typeof itemsToTags>;
 
+export const orders = mysqlTable("orders", {
+  id: varchar("id", {
+    length: 26,
+  }).primaryKey(),
+  description: text("description").notNull(),
+  total: float("total").notNull().default(0),
+  status: varchar("status", {
+    length: 255,
+    enum: ["pending", "paid", "completed", "cancelled"],
+  })
+    .notNull()
+    .default("pending"),
+  userID: varchar("user_id", {
+    length: 50,
+  }).notNull(),
+  createdAt: timestamp("created_at", {
+    mode: "string",
+  }).defaultNow(),
+});
+
+// ---- Relations ----
 export const userRelations = relations(users, ({ many }) => ({
   sessions: many(sessions),
   keys: many(keys),
@@ -141,5 +162,12 @@ export const itemsToTagsRelations = relations(itemsToTags, ({ one }) => ({
   tag: one(tags, {
     fields: [itemsToTags.tagID],
     references: [tags.id],
+  }),
+}));
+
+export const ordersRelations = relations(orders, ({ one, many }) => ({
+  user: one(users, {
+    fields: [orders.userID],
+    references: [users.id],
   }),
 }));

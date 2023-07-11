@@ -4,9 +4,10 @@ import { ulid } from "ulid";
 
 import { auth } from "~/auth/lucia.server";
 import { db } from "~/db/connection";
-import { items, itemsToTags, tags } from "~/db/schema";
+import { items, itemsToTags, orders, tags } from "~/db/schema";
 import {
   createItemSchema,
+  createOrderSchema,
   createTagSchema,
   deleteItemSchema,
   deleteTagSchema,
@@ -131,4 +132,25 @@ export const deleteItemMutation = mutation$({
   },
   key: "deleteItemsMutation",
   schema: deleteItemSchema,
+});
+
+// ----- Orders -----
+
+export const createOrderMutation = mutation$({
+  mutationFn: async ({ payload, request$ }) => {
+    const authRequest = auth.handleRequest(request$);
+    const session = await authRequest.validate();
+
+    await db.transaction(async (tx) => {
+      const orderID = ulid();
+
+      await tx.insert(orders).values({
+        id: orderID,
+        description: payload.description,
+        userID: session.user.userId,
+      });
+    });
+  },
+  key: "createOrderMutation",
+  schema: createOrderSchema,
 });
