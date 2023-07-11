@@ -1,6 +1,7 @@
 import { query$ } from "@prpc/solid";
-import { isNull } from "drizzle-orm";
+import { and, eq, isNull } from "drizzle-orm";
 import { User } from "lucia";
+import { z } from "zod";
 
 import { auth } from "~/auth/lucia.server";
 import { db } from "~/db/connection";
@@ -44,4 +45,34 @@ export const searchItemsQuery = query$({
     });
   },
   key: "searchItems",
+});
+
+export const showItemQuery = query$({
+  queryFn: async ({ payload }) => {
+    const result = await db.query.items.findFirst({
+      where: and(eq(items.id, payload.id), isNull(items.deletedAt)),
+      with: {
+        user: true,
+        tags: {
+          columns: {
+            itemID: false,
+            tagID: false,
+          },
+          with: {
+            tag: true,
+          },
+        },
+      },
+    });
+
+    if (!result) {
+      throw new Error("Not found");
+    }
+
+    return result;
+  },
+  key: "showItem",
+  schema: z.object({
+    id: z.string(),
+  }),
 });
