@@ -1,12 +1,12 @@
 import { query$ } from "@prpc/solid";
-import { and, eq, isNull } from "drizzle-orm";
+import { and, eq, isNull, sql } from "drizzle-orm";
 import { User } from "lucia";
 import { z } from "zod";
 
 import { auth } from "~/auth/lucia.server";
 import { db } from "~/db/connection";
 import { fetchUserFromId } from "~/db/core";
-import { items, orders, tags } from "~/db/schema";
+import { items, itemsToTags, orders, tags } from "~/db/schema";
 
 export const userQuery = query$({
   queryFn: async ({ request$ }) => {
@@ -29,7 +29,15 @@ export const userQuery = query$({
 
 export const searchTagsQuery = query$({
   queryFn: async ({}) => {
-    return db.select().from(tags).orderBy(tags.id);
+    return db
+      .select({
+        id: tags.id,
+        name: tags.name,
+        count: sql<number>`count(${itemsToTags.tagID})`.mapWith(Number),
+      })
+      .from(tags)
+      .leftJoin(itemsToTags, eq(itemsToTags.tagID, tags.id))
+      .groupBy(tags.id);
   },
   key: "searchTags",
 });

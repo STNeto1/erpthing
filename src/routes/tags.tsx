@@ -194,7 +194,7 @@ const TagsLayout: VoidComponent = () => {
         </div>
       </div>
 
-      <section class="container flex max-w-5xl flex-col gap-8 py-10">
+      <section class="container flex max-w-7xl flex-col gap-8 py-10">
         <div class="flex items-center justify-between">
           <h1
             class={cn(
@@ -220,6 +220,7 @@ const TagsLayout: VoidComponent = () => {
           <TableHeader>
             <TableRow>
               <TableHead>Name</TableHead>
+              <TableHead>Usage (items)</TableHead>
               <TableHead class="text-right"></TableHead>
             </TableRow>
           </TableHeader>
@@ -227,7 +228,8 @@ const TagsLayout: VoidComponent = () => {
             <For each={searchTags?.data ?? []}>
               {(tag) => (
                 <TableRow>
-                  <TableCell class="w-3/4 font-medium">{tag.name}</TableCell>
+                  <TableCell class="w-2/4 font-medium">{tag.name}</TableCell>
+                  <TableCell class="w-1/4">{tag.count}</TableCell>
                   <TableCell>
                     <DropdownMenu>
                       <DropdownMenuTrigger class="flex items-center ">
