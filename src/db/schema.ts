@@ -122,6 +122,22 @@ export const orders = mysqlTable("orders", {
   }).defaultNow(),
 });
 
+export const orderItems = mysqlTable(
+  "order_items",
+  {
+    orderID: varchar("order_id", {
+      length: 26,
+    }),
+    itemID: varchar("item_id", {
+      length: 26,
+    }),
+    quantity: int("quantity").notNull().default(0),
+  },
+  (t) => ({
+    pk: primaryKey(t.orderID, t.itemID),
+  }),
+);
+
 // ---- Relations ----
 export const userRelations = relations(users, ({ many }) => ({
   sessions: many(sessions),
@@ -169,5 +185,17 @@ export const ordersRelations = relations(orders, ({ one, many }) => ({
   user: one(users, {
     fields: [orders.userID],
     references: [users.id],
+  }),
+  items: many(orderItems),
+}));
+
+export const orderItemsRelations = relations(orderItems, ({ many, one }) => ({
+  order: one(orders, {
+    fields: [orderItems.orderID],
+    references: [orders.id],
+  }),
+  item: one(items, {
+    fields: [orderItems.itemID],
+    references: [items.id],
   }),
 }));

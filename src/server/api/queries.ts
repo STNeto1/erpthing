@@ -6,7 +6,7 @@ import { z } from "zod";
 import { auth } from "~/auth/lucia.server";
 import { db } from "~/db/connection";
 import { fetchUserFromId } from "~/db/core";
-import { items, tags } from "~/db/schema";
+import { items, orders, tags } from "~/db/schema";
 
 export const userQuery = query$({
   queryFn: async ({ request$ }) => {
@@ -86,4 +86,30 @@ export const searchOrdersQuery = query$({
     });
   },
   key: "searchOrders",
+});
+
+export const showOrderQuery = query$({
+  queryFn: async ({ payload }) => {
+    const result = await db.query.orders.findFirst({
+      where: eq(orders.id, payload.id),
+      with: {
+        user: true,
+        items: {
+          with: {
+            item: true,
+          },
+        },
+      },
+    });
+
+    if (!result) {
+      throw new Error("Not found");
+    }
+
+    return result;
+  },
+  key: "showOrder",
+  schema: z.object({
+    id: z.string(),
+  }),
 });

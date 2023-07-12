@@ -4,6 +4,7 @@ import {
   SubmitHandler,
   zodForm,
 } from "@modular-forms/solid";
+import { A } from "@solidjs/router";
 import {
   Accessor,
   createEffect,
@@ -133,6 +134,7 @@ const OrdersIndexPage: VoidComponent = () => {
             <TableHead>Total</TableHead>
             <TableHead>Status</TableHead>
             <TableHead>Created</TableHead>
+            <TableHead></TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -151,6 +153,9 @@ const OrdersIndexPage: VoidComponent = () => {
                 </TableCell>
                 <TableCell class="">{elem.status}</TableCell>
                 <TableCell class="">{elem.createdAt}</TableCell>
+                <TableCell class="">
+                  <A href={`/orders/${elem.id}`}>View</A>
+                </TableCell>
               </TableRow>
             )}
           </For>

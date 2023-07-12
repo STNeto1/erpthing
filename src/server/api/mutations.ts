@@ -4,9 +4,10 @@ import { ulid } from "ulid";
 
 import { auth } from "~/auth/lucia.server";
 import { db } from "~/db/connection";
-import { items, itemsToTags, orders, tags } from "~/db/schema";
+import { items, itemsToTags, orderItems, orders, tags } from "~/db/schema";
 import {
   createItemSchema,
+  createOrderItemSchema,
   createOrderSchema,
   createTagSchema,
   deleteItemSchema,
@@ -153,4 +154,45 @@ export const createOrderMutation = mutation$({
   },
   key: "createOrderMutation",
   schema: createOrderSchema,
+});
+
+export const createOrderItemMutation = mutation$({
+  mutationFn: async ({ payload }) => {
+    await db.transaction(async (tx) => {
+      const [order] = await tx
+        .select()
+        .from(orders)
+        .where(eq(orders.id, payload.orderID));
+      if (!order) {
+        throw new Error("Invalid order");
+      }
+
+      const [item] = await tx
+        .select()
+        .from(items)
+        .where(eq(items.id, payload.itemID));
+      if (!item) {
+        throw new Error("Invalid item");
+      }
+
+      if (item.stock < payload.quantity) {
+        throw new Error("Not enough stock");
+      }
+
+      await tx.insert(orderItems).values({
+        orderID: payload.orderID,
+        itemID: payload.itemID,
+        quantity: payload.quantity,
+      });
+
+      await tx
+        .update(items)
+        .set({
+          stock: item.stock - payload.quantity,
+        })
+        .where(eq(items.id, payload.itemID));
+    });
+  },
+  key: "createOrderItemMutation",
+  schema: createOrderItemSchema,
 });
