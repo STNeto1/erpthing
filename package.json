@@ -26,8 +26,9 @@
     "vite": "^4.1.2"
   },
   "dependencies": {
+    "@felte/solid": "^1.2.10",
+    "@felte/validator-zod": "^1.0.16",
     "@kobalte/core": "^0.9.8",
-    "@modular-forms/solid": "^0.18.1",
     "@planetscale/database": "^1.8.0",
     "@prpc/solid": "^0.2.33",
     "@prpc/vite": "^0.3.21",

@@ -1,11 +1,14 @@
-import {
-  createForm,
-  reset,
-  SubmitHandler,
-  zodForm,
-} from "@modular-forms/solid";
+import { createForm } from "@felte/solid";
+import { validator } from "@felte/validator-zod";
 import { BsThreeDots } from "solid-icons/bs";
-import { createSignal, For, Show, type VoidComponent } from "solid-js";
+import {
+  Accessor,
+  createEffect,
+  createSignal,
+  For,
+  Show,
+  type VoidComponent,
+} from "solid-js";
 
 import {
   createTagMutation,
@@ -23,6 +26,12 @@ import { MainNav } from "~/components/main-nav";
 import { Alert, AlertDescription, AlertTitle } from "~/components/ui/alert";
 import { Button } from "~/components/ui/button";
 import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "~/components/ui/dialog";
+import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
@@ -32,7 +41,6 @@ import {
 } from "~/components/ui/dropdown-menu";
 import { FormItem, FormLabel, FormMessage } from "~/components/ui/form";
 import { Input } from "~/components/ui/input";
-import { Separator } from "~/components/ui/separator";
 import {
   Table,
   TableBody,
@@ -44,131 +52,117 @@ import {
 import { typographyVariants } from "~/components/ui/typography";
 import { UserNav } from "~/components/user-nav";
 import { DTag } from "~/db/schema";
+import { cn } from "~/lib/utils";
 
-const CreateTagForm: VoidComponent<{ onCompleted: () => void }> = (props) => {
+const CreateTagForm: VoidComponent<{
+  open: Accessor<boolean>;
+  setOpen: (open: boolean) => void;
+}> = (props) => {
   const createTag = createTagMutation();
 
-  const [createTagForm, { Field, Form }] = createForm<CreateTagSchema>({
-    validate: zodForm(createTagSchema),
-  });
-  const handleCreateSubmit: SubmitHandler<CreateTagSchema> = async (data) => {
-    await createTag.mutateAsync(data);
-    reset(createTagForm, "name");
+  const { form, errors, isSubmitting, reset } = createForm<CreateTagSchema>({
+    extend: validator({ schema: createTagSchema }),
+    onSubmit: async (data) => {
+      await createTag.mutateAsync(data);
 
-    props.onCompleted();
-  };
+      reset();
+      props.setOpen(false);
+    },
+  });
 
   return (
-    <div class="mx-auto flex w-full flex-col justify-center space-y-6">
-      <h4 class={typographyVariants({ variant: "h4" })}>Create new tag</h4>
-      <Form
-        onSubmit={handleCreateSubmit}
-        class="flex w-full flex-col items-end gap-4"
-      >
-        <Field name="name">
-          {(field, props) => (
-            <FormItem class="w-full">
-              <FormLabel>Name</FormLabel>
-              <Input
-                id="name"
-                type="text"
-                placeholder="Tag 1"
-                required
-                {...props}
-                value={field.value ?? ""}
-                class="w-full"
-              />
-              <Show when={field.error}>
-                {(msg) => <FormMessage>{msg()}</FormMessage>}
-              </Show>
-            </FormItem>
-          )}
-        </Field>
+    <Dialog open={props.open()} onOpenChange={(v) => props.setOpen(v)}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Create a new tag</DialogTitle>
+        </DialogHeader>
 
-        <Button type="submit" class="w-40" disabled={createTag.isPending}>
-          Submit
-        </Button>
-      </Form>
-    </div>
+        <form ref={form} class="flex w-full flex-col items-end gap-4">
+          <FormItem class="w-full">
+            <FormLabel>Name</FormLabel>
+            <Input
+              id="name"
+              name="name"
+              type="text"
+              placeholder="Tag 1"
+              required
+              class="w-full"
+              disabled={createTag.isPending || isSubmitting()}
+            />
+            <Show when={errors().name}>
+              {(msg) => <FormMessage>{msg().join(", ")}</FormMessage>}
+            </Show>
+          </FormItem>
+
+          <Button
+            type="submit"
+            disabled={createTag.isPending || isSubmitting()}
+          >
+            Submit
+          </Button>
+        </form>
+      </DialogContent>
+    </Dialog>
   );
 };
 
 const UpdateTagForm: VoidComponent<{
   data: DTag;
-  onCompleted: () => void;
+  close: () => void;
 }> = (props) => {
   const updateTag = updateTagMutation();
 
-  const [updateTagForm, { Form, Field }] = createForm<UpdateTagSchema>({
-    validate: zodForm(createTagSchema),
+  const { form, errors, reset } = createForm<UpdateTagSchema>({
     initialValues: {
       id: props.data.id,
       name: props.data.name,
     },
-  });
-  const handleUpdateSubmit: SubmitHandler<UpdateTagSchema> = async (data) => {
-    await updateTag.mutateAsync(data);
-    reset(updateTagForm, "name");
+    extend: validator({ schema: createTagSchema }),
+    onSubmit: async (data) => {
+      await updateTag.mutateAsync(data);
 
-    props.onCompleted();
-  };
+      reset();
+      props.close();
+    },
+  });
 
   return (
-    <div class="mx-auto flex w-full flex-col justify-center space-y-6">
-      <h4 class={typographyVariants({ variant: "h4" })}>Update existing tag</h4>
+    <Dialog open={!!props.data} onOpenChange={() => props.close()}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Update tag - {props.data.name}</DialogTitle>
+        </DialogHeader>
 
-      <Form
-        onSubmit={handleUpdateSubmit}
-        class="flex w-full flex-col items-end gap-4"
-      >
-        <Field name="id">
-          {(field, props) => (
-            <FormItem class="hidden ">
-              <Input
-                id="id"
-                type="text"
-                required
-                {...props}
-                value={field.value ?? ""}
-                class="w-full"
-              />
-            </FormItem>
-          )}
-        </Field>
+        <form ref={form} class="flex w-full flex-col items-end gap-4">
+          <FormItem class="w-full">
+            <FormLabel>Name</FormLabel>
+            <Input
+              id="name"
+              name="name"
+              type="text"
+              placeholder="Tag 1"
+              required
+              class="w-full"
+            />
+            <Show when={errors().name}>
+              {(msg) => <FormMessage>{msg().join(", ")}</FormMessage>}
+            </Show>
+          </FormItem>
 
-        <Field name="name">
-          {(field, props) => (
-            <FormItem class="w-full">
-              <FormLabel>Name</FormLabel>
-              <Input
-                id="name"
-                type="text"
-                placeholder="Tag 1"
-                required
-                {...props}
-                value={field.value ?? ""}
-                class="w-full"
-              />
-              <Show when={field.error}>
-                {(msg) => <FormMessage>{msg()}</FormMessage>}
-              </Show>
-            </FormItem>
-          )}
-        </Field>
-
-        <Button type="submit" class="w-40" disabled={updateTag.isPending}>
-          Submit
-        </Button>
-      </Form>
-    </div>
+          <Button type="submit" class="w-40" disabled={updateTag.isPending}>
+            Submit
+          </Button>
+        </form>
+      </DialogContent>
+    </Dialog>
   );
 };
 
 const TagsLayout: VoidComponent = () => {
+  const [openCreate, setOpenCreate] = createSignal(false);
   const [isUpdating, setIsUpdating] = createSignal<DTag | null>(null);
 
   const searchTags = searchTagsQuery();
-
   const deleteTag = deleteTagMutation();
 
   const handleStartUpdate = (id: string) => {
@@ -183,6 +177,12 @@ const TagsLayout: VoidComponent = () => {
     searchTags.refetch();
   };
 
+  createEffect(() => {
+    if (!openCreate()) {
+      searchTags.refetch();
+    }
+  });
+
   return (
     <main class="min-h-screen">
       <div class="border-b">
@@ -195,6 +195,27 @@ const TagsLayout: VoidComponent = () => {
       </div>
 
       <section class="container flex max-w-5xl flex-col gap-8 py-10">
+        <div class="flex items-center justify-between">
+          <h1
+            class={cn(
+              typographyVariants({
+                variant: "h2",
+              }),
+            )}
+          >
+            Tags
+          </h1>
+
+          <Button
+            variant={"outline"}
+            disabled={openCreate()}
+            onClick={() => setOpenCreate(true)}
+          >
+            Create Tag
+          </Button>
+          <CreateTagForm open={openCreate} setOpen={setOpenCreate} />
+        </div>
+
         <Table>
           <TableHeader>
             <TableRow>
@@ -250,23 +271,15 @@ const TagsLayout: VoidComponent = () => {
 
         <Show when={isUpdating()}>
           {(tag) => (
-            <>
-              <Separator orientation={"horizontal"} />
-
-              <UpdateTagForm
-                data={tag()}
-                onCompleted={() => {
-                  setIsUpdating(null);
-                  searchTags.refetch();
-                }}
-              />
-            </>
+            <UpdateTagForm
+              data={tag()}
+              close={() => {
+                setIsUpdating(null);
+                searchTags.refetch();
+              }}
+            />
           )}
         </Show>
-
-        <Separator orientation={"horizontal"} />
-
-        <CreateTagForm onCompleted={() => searchTags.refetch()} />
       </section>
     </main>
   );

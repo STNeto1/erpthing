@@ -1,5 +1,4 @@
-import { getValues } from "@modular-forms/solid";
-import { createEffect, JSX, Show, type VoidComponent } from "solid-js";
+import { JSX, Show, type VoidComponent } from "solid-js";
 import { useParams } from "solid-start";
 
 import { searchItemsQuery, showOrderQuery } from "rpc/queries";
@@ -34,10 +33,6 @@ const ShowOrderPage: VoidComponent = () => {
 
   const searchItems = searchItemsQuery();
   const createMutation = createOrderItemMutation();
-
-  createEffect(() => {
-    console.log("data =>", getValues(createOrderItem));
-  });
 
   return (
     <section class="container max-w-6xl">

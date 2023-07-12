@@ -1,11 +1,14 @@
-import {
-  createForm,
-  reset,
-  SubmitHandler,
-  zodForm,
-} from "@modular-forms/solid";
+import { createForm } from "@felte/solid";
+import { validator } from "@felte/validator-zod";
 import { BsThreeDots } from "solid-icons/bs";
-import { createSignal, For, Show, type VoidComponent } from "solid-js";
+import {
+  Accessor,
+  createEffect,
+  createSignal,
+  For,
+  Show,
+  type VoidComponent,
+} from "solid-js";
 import { useNavigate } from "solid-start";
 
 import {
@@ -17,13 +20,18 @@ import { searchItemsQuery, searchTagsQuery } from "rpc/queries";
 import {
   CreateItemSchema,
   createItemSchema,
+  updateItemSchema,
   UpdateItemSchema,
-  updateTagSchema,
 } from "rpc/zod-schemas";
 
 import { Alert, AlertDescription, AlertTitle } from "~/components/ui/alert";
 import { Button } from "~/components/ui/button";
-import { checkboxStyles } from "~/components/ui/checkbox";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "~/components/ui/dialog";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -35,7 +43,6 @@ import {
 import { FormItem, FormLabel, FormMessage } from "~/components/ui/form";
 import { Input } from "~/components/ui/input";
 import { Label } from "~/components/ui/label";
-import { Separator } from "~/components/ui/separator";
 import {
   Table,
   TableBody,
@@ -46,156 +53,140 @@ import {
 } from "~/components/ui/table";
 import { typographyVariants } from "~/components/ui/typography";
 import { DItem, DItemsToTags, DUser } from "~/db/schema";
+import { cn } from "~/lib/utils";
 
-const CreateItemForm: VoidComponent<{ onCompleted: () => void }> = (props) => {
+const CreateItemForm: VoidComponent<{
+  open: Accessor<boolean>;
+  setOpen: (open: boolean) => void;
+}> = (props) => {
   const createItem = createItemMutation();
   const searchTags = searchTagsQuery();
 
-  const [createTagForm, { Field, Form }] = createForm<CreateItemSchema>({
-    validate: zodForm(createItemSchema),
-    initialValues: {
-      name: "",
-      description: "",
-      stock: 0,
-      price: 0,
-      tags: [],
-    },
-  });
-  const handleCreateSubmit: SubmitHandler<CreateItemSchema> = async (data) => {
-    await createItem.mutateAsync(data);
-
-    reset(createTagForm, "name");
-    reset(createTagForm, "description");
-    reset(createTagForm, "stock");
-    reset(createTagForm, "price");
-    reset(createTagForm, "tags");
-
-    props.onCompleted();
+  const [selectedTags, setSelectedTags] = createSignal<string[]>([]);
+  const handleCheckboxChange = (tag: string) => {
+    if (selectedTags().includes(tag)) {
+      setSelectedTags(selectedTags().filter((t) => t !== tag));
+    } else {
+      setSelectedTags([...selectedTags(), tag]);
+    }
   };
 
+  const { form, errors, reset } = createForm<CreateItemSchema>({
+    extend: validator({ schema: createItemSchema }),
+    onSubmit: async (data) => {
+      await createItem.mutateAsync(data);
+
+      reset();
+      setSelectedTags([]);
+      props.setOpen(false);
+    },
+  });
+
   return (
-    <div class="mx-auto flex w-full flex-col justify-center space-y-6">
-      <h4 class={typographyVariants({ variant: "h4" })}>Create new item</h4>
-      <Form
-        onSubmit={handleCreateSubmit}
-        class="flex w-full flex-col items-end gap-4"
-      >
-        <Field name="name">
-          {(field, props) => (
-            <FormItem class="w-full">
-              <FormLabel>Name</FormLabel>
-              <Input
-                id="name"
-                type="text"
-                placeholder="Item 1"
-                required
-                {...props}
-                value={field.value ?? ""}
-                class="w-full"
-              />
-              <Show when={field?.error}>
-                {(msg) => <FormMessage>{msg()}</FormMessage>}
-              </Show>
-            </FormItem>
-          )}
-        </Field>
+    <Dialog open={props.open()} onOpenChange={(v) => props.setOpen(v)}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Create a new item</DialogTitle>
+        </DialogHeader>
 
-        <Field name="description">
-          {(field, props) => (
-            <FormItem class="w-full">
-              <FormLabel>Description</FormLabel>
-              <Input
-                id="description"
-                type="text"
-                placeholder="Some description"
-                required
-                {...props}
-                value={field.value ?? ""}
-                class="w-full"
-              />
-              <Show when={field?.error}>
-                {(msg) => <FormMessage>{msg()}</FormMessage>}
-              </Show>
-            </FormItem>
-          )}
-        </Field>
+        <form ref={form} class="flex w-full flex-col items-end gap-4">
+          <FormItem class="w-full">
+            <FormLabel>Name</FormLabel>
+            <Input
+              id="name"
+              name="name"
+              type="text"
+              placeholder="Item 1"
+              required
+              class="w-full"
+            />
+            <Show when={errors().name}>
+              {(msg) => <FormMessage>{msg().join(", ")}</FormMessage>}
+            </Show>
+          </FormItem>
 
-        <Field name="stock" type="number">
-          {(field, props) => (
-            <FormItem class="w-full">
-              <FormLabel>Stock</FormLabel>
-              <Input
-                id="stock"
-                type="number"
-                placeholder="Some description"
-                required
-                {...props}
-                value={field.value ?? 0}
-                class="w-full"
-              />
-              <Show when={field?.error}>
-                {(msg) => <FormMessage>{msg()}</FormMessage>}
-              </Show>
-            </FormItem>
-          )}
-        </Field>
+          <FormItem class="w-full">
+            <FormLabel>Description</FormLabel>
+            <Input
+              id="description"
+              name="description"
+              type="text"
+              placeholder="Some description"
+              required
+              class="w-full"
+            />
+            <Show when={errors().description}>
+              {(msg) => <FormMessage>{msg().join(", ")}</FormMessage>}
+            </Show>
+          </FormItem>
 
-        <Field name="price" type="number">
-          {(field, props) => (
-            <FormItem class="w-full">
-              <FormLabel>Price</FormLabel>
-              <Input
-                id="price"
-                type="number"
-                placeholder="Item price"
-                min={0}
-                step={0.01}
-                required
-                {...props}
-                value={field.value ?? 0}
-                class="w-full"
-              />
-              <Show when={field?.error}>
-                {(msg) => <FormMessage>{msg()}</FormMessage>}
-              </Show>
-            </FormItem>
-          )}
-        </Field>
+          <FormItem class="w-full">
+            <FormLabel>Stock</FormLabel>
+            <Input
+              id="stock"
+              name="stock"
+              type="number"
+              placeholder="Some description"
+              required
+              class="w-full"
+            />
+            <Show when={errors().stock}>
+              {(msg) => <FormMessage>{msg().join(", ")}</FormMessage>}
+            </Show>
+          </FormItem>
 
-        <Field name="tags" type="string[]">
-          {(field, props) => (
-            <FormItem class="w-full">
-              <FormLabel>Tags</FormLabel>
-              <div class="grid grid-cols-4 gap-4 pt-1">
-                <For each={searchTags.data ?? []}>
-                  {(tag) => (
-                    <div class="flex items-center gap-2">
-                      <input
-                        id={tag.id}
-                        type="checkbox"
-                        checked={field.value?.includes(tag.id)}
-                        value={tag.id}
-                        {...props}
-                        class={checkboxStyles}
-                      />
-                      <Label>{tag.name}</Label>
-                    </div>
-                  )}
-                </For>
-              </div>
+          <FormItem class="w-full">
+            <FormLabel>Price</FormLabel>
+            <Input
+              id="price"
+              name="price"
+              type="number"
+              placeholder="Item price"
+              min={0}
+              step={0.01}
+              required
+              class="w-full"
+            />
+            <Show when={errors().price}>
+              {(msg) => <FormMessage>{msg().join(", ")}</FormMessage>}
+            </Show>
+          </FormItem>
 
-              <Show when={field?.error}>
-                {(msg) => <FormMessage>{msg()}</FormMessage>}
-              </Show>
-            </FormItem>
-          )}
-        </Field>
+          <FormItem class="w-full">
+            <FormLabel>Tags</FormLabel>
+            <div class="grid grid-cols-3 gap-4 pt-1">
+              <For each={searchTags.data ?? []}>
+                {(tag) => (
+                  <div class="flex items-center gap-2">
+                    <input
+                      id={tag.id}
+                      name="tags"
+                      type="checkbox"
+                      checked={selectedTags().includes(tag.id)}
+                      onChange={() => handleCheckboxChange(tag.id)}
+                      value={tag.id}
+                    />
+                    <Label>{tag.name}</Label>
+                  </div>
+                )}
+              </For>
+            </div>
 
-        <Button type="submit" class="w-40" disabled={createItem.isPending}>
-          Submit
-        </Button>
-      </Form>
-    </div>
+            <Show when={errors().tags}>
+              {(msg) => <FormMessage>{msg().join(", ")}</FormMessage>}
+            </Show>
+          </FormItem>
+
+          <Button
+            type="submit"
+            class="mt-10 w-40"
+            disabled={createItem.isPending}
+          >
+            Submit
+          </Button>
+        </form>
+      </DialogContent>
+    </Dialog>
   );
 };
 
@@ -208,8 +199,16 @@ const UpdateItemForm: VoidComponent<{
   const updateItem = updateItemMutation();
   const searchTags = searchTagsQuery();
 
-  const [_, { Form, Field }] = createForm<UpdateItemSchema>({
-    validate: zodForm(updateTagSchema),
+  const [selectedTags, setSelectedTags] = createSignal<string[]>([]);
+  const handleCheckboxChange = (tag: string) => {
+    if (selectedTags().includes(tag)) {
+      setSelectedTags(selectedTags().filter((t) => t !== tag));
+    } else {
+      setSelectedTags([...selectedTags(), tag]);
+    }
+  };
+
+  const { form, errors, reset } = createForm<UpdateItemSchema>({
     initialValues: {
       id: props.data.id,
       name: props.data.name,
@@ -218,158 +217,123 @@ const UpdateItemForm: VoidComponent<{
       price: props.data.price,
       tags: props.data.tags.map((t) => t.tagID).filter(Boolean) as string[],
     },
-  });
-  const handleUpdateSubmit: SubmitHandler<UpdateItemSchema> = async (data) => {
-    await updateItem.mutateAsync(data);
+    extend: validator({ schema: updateItemSchema }),
+    onSubmit: async (data) => {
+      await updateItem.mutateAsync(data);
 
-    props.onCompleted();
-  };
+      reset();
+      props.onCompleted();
+    },
+  });
 
   return (
-    <div class="mx-auto flex w-full flex-col justify-center space-y-6">
-      <h4 class={typographyVariants({ variant: "h4" })}>Update existing tag</h4>
+    <Dialog open={!!props.data} onOpenChange={() => props.onCompleted()}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Update - {props.data.name}</DialogTitle>
+        </DialogHeader>
 
-      <Form
-        onSubmit={handleUpdateSubmit}
-        class="flex w-full flex-col items-end gap-4"
-      >
-        <Field name="id">
-          {(field, props) => (
-            <FormItem class="hidden ">
-              <Input
-                id="id"
-                type="text"
-                required
-                {...props}
-                value={field.value ?? ""}
-                class="w-full"
-              />
-            </FormItem>
-          )}
-        </Field>
+        <form ref={form} class="flex w-full flex-col items-end gap-4">
+          <FormItem class="w-full">
+            <FormLabel>Name</FormLabel>
+            <Input
+              id="name"
+              name="name"
+              type="text"
+              placeholder="Tag 1"
+              required
+              class="w-full"
+            />
+            <Show when={errors().name}>
+              {(msg) => <FormMessage>{msg().join(", ")}</FormMessage>}
+            </Show>
+          </FormItem>
 
-        <Field name="name">
-          {(field, props) => (
-            <FormItem class="w-full">
-              <FormLabel>Name</FormLabel>
-              <Input
-                id="name"
-                type="text"
-                placeholder="Tag 1"
-                required
-                {...props}
-                value={field.value ?? ""}
-                class="w-full"
-              />
-              <Show when={field?.error}>
-                {(msg) => <FormMessage>{msg()}</FormMessage>}
-              </Show>
-            </FormItem>
-          )}
-        </Field>
+          <FormItem class="w-full">
+            <FormLabel>Description</FormLabel>
+            <Input
+              id="description"
+              name="description"
+              type="text"
+              placeholder="Some description"
+              required
+              class="w-full"
+            />
+            <Show when={errors().description}>
+              {(msg) => <FormMessage>{msg().join(", ")}</FormMessage>}
+            </Show>
+          </FormItem>
 
-        <Field name="description">
-          {(field, props) => (
-            <FormItem class="w-full">
-              <FormLabel>Description</FormLabel>
-              <Input
-                id="description"
-                type="text"
-                placeholder="Some description"
-                required
-                {...props}
-                value={field.value ?? ""}
-                class="w-full"
-              />
-              <Show when={field?.error}>
-                {(msg) => <FormMessage>{msg()}</FormMessage>}
-              </Show>
-            </FormItem>
-          )}
-        </Field>
+          <FormItem class="w-full">
+            <FormLabel>Stock</FormLabel>
+            <Input
+              id="stock"
+              name="stock"
+              type="number"
+              placeholder="Some description"
+              required
+              class="w-full"
+            />
+            <Show when={errors().stock}>
+              {(msg) => <FormMessage>{msg().join(", ")}</FormMessage>}
+            </Show>
+          </FormItem>
 
-        <Field name="stock" type="number">
-          {(field, props) => (
-            <FormItem class="w-full">
-              <FormLabel>Stock</FormLabel>
-              <Input
-                id="stock"
-                type="number"
-                placeholder="Some description"
-                required
-                {...props}
-                value={field.value ?? 0}
-                class="w-full"
-              />
-              <Show when={field?.error}>
-                {(msg) => <FormMessage>{msg()}</FormMessage>}
-              </Show>
-            </FormItem>
-          )}
-        </Field>
+          <FormItem class="w-full">
+            <FormLabel>Price</FormLabel>
+            <Input
+              id="price"
+              name="price"
+              type="number"
+              placeholder="Item price"
+              min={0}
+              step={0.01}
+              required
+              class="w-full"
+            />
+            <Show when={errors().price}>
+              {(msg) => <FormMessage>{msg().join(", ")}</FormMessage>}
+            </Show>
+          </FormItem>
 
-        <Field name="price" type="number">
-          {(field, props) => (
-            <FormItem class="w-full">
-              <FormLabel>Price</FormLabel>
-              <Input
-                id="price"
-                type="number"
-                placeholder="Item price"
-                min={0}
-                step={0.01}
-                required
-                {...props}
-                value={field.value ?? 0}
-                class="w-full"
-              />
-              <Show when={field?.error}>
-                {(msg) => <FormMessage>{msg()}</FormMessage>}
-              </Show>
-            </FormItem>
-          )}
-        </Field>
+          <FormItem class="w-full">
+            <FormLabel>Tags</FormLabel>
+            <div class="grid grid-cols-3 gap-4 pt-1">
+              <For each={searchTags.data ?? []}>
+                {(tag) => (
+                  <div class="flex items-center gap-2">
+                    <input
+                      id={tag.id}
+                      name="tags"
+                      type="checkbox"
+                      checked={selectedTags().includes(tag.id)}
+                      onChange={() => handleCheckboxChange(tag.id)}
+                      value={tag.id}
+                    />
+                    <Label>{tag.name}</Label>
+                  </div>
+                )}
+              </For>
+            </div>
 
-        <Field name="tags" type="string[]">
-          {(field, props) => (
-            <FormItem class="w-full">
-              <FormLabel>Tags</FormLabel>
-              <div class="grid grid-cols-4 gap-4 pt-1">
-                <For each={searchTags.data ?? []}>
-                  {(tag) => (
-                    <div class="flex items-center gap-2">
-                      <input
-                        id={tag.id}
-                        type="checkbox"
-                        checked={field.value?.includes(tag.id)}
-                        value={tag.id}
-                        {...props}
-                        class={checkboxStyles}
-                      />
-                      <Label>{tag.name}</Label>
-                    </div>
-                  )}
-                </For>
-              </div>
+            <Show when={errors().tags}>
+              {(msg) => <FormMessage>{msg().join(", ")}</FormMessage>}
+            </Show>
+          </FormItem>
 
-              <Show when={field?.error}>
-                {(msg) => <FormMessage>{msg()}</FormMessage>}
-              </Show>
-            </FormItem>
-          )}
-        </Field>
-
-        <Button type="submit" class="w-40" disabled={updateItem.isPending}>
-          Submit
-        </Button>
-      </Form>
-    </div>
+          <Button type="submit" class="w-40" disabled={updateItem.isPending}>
+            Submit
+          </Button>
+        </form>
+      </DialogContent>
+    </Dialog>
   );
 };
 
 const ItemsIndexPage: VoidComponent = () => {
   const navigate = useNavigate();
 
+  const [openCreate, setOpenCreate] = createSignal(false);
   const [isUpdating, setIsUpdating] = createSignal<UpdateItem | null>(null);
 
   const searchItems = searchItemsQuery();
@@ -383,38 +347,38 @@ const ItemsIndexPage: VoidComponent = () => {
   };
 
   const handleDelete = async (id: string) => {
-    deleteItem.mutateAsync({ id });
+    await deleteItem.mutateAsync({ id });
     searchItems.refetch();
   };
 
+  createEffect(() => {
+    if (!openCreate()) {
+      searchItems.refetch();
+    }
+  });
+
   return (
     <section class="container flex max-w-7xl flex-col gap-8 py-10">
-      <Show when={!!isUpdating()}>
-        {(_) => (
-          <>
-            <Separator orientation={"horizontal"} />
+      <div class="flex items-center justify-between">
+        <h1
+          class={cn(
+            typographyVariants({
+              variant: "h2",
+            }),
+          )}
+        >
+          Items
+        </h1>
 
-            <UpdateItemForm
-              data={isUpdating()!}
-              onCompleted={() => {
-                setIsUpdating(null);
-                searchItems.refetch();
-              }}
-            />
-          </>
-        )}
-      </Show>
-
-      <Show when={!isUpdating()}>
-        {(_) => (
-          <>
-            <Separator orientation={"horizontal"} />
-            <CreateItemForm onCompleted={() => searchItems.refetch()} />
-          </>
-        )}
-      </Show>
-
-      <Separator orientation={"horizontal"} />
+        <Button
+          variant={"outline"}
+          disabled={openCreate()}
+          onClick={() => setOpenCreate(true)}
+        >
+          Create
+        </Button>
+        <CreateItemForm open={openCreate} setOpen={setOpenCreate} />
+      </div>
 
       <Table>
         <TableHeader>
@@ -488,6 +452,18 @@ const ItemsIndexPage: VoidComponent = () => {
             <AlertTitle>Error</AlertTitle>
             <AlertDescription>{err().message}</AlertDescription>
           </Alert>
+        )}
+      </Show>
+
+      <Show when={!!isUpdating()}>
+        {(_) => (
+          <UpdateItemForm
+            data={isUpdating()!}
+            onCompleted={() => {
+              setIsUpdating(null);
+              searchItems.refetch();
+            }}
+          />
         )}
       </Show>
     </section>

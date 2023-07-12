@@ -1,9 +1,5 @@
-import {
-  createForm,
-  reset,
-  SubmitHandler,
-  zodForm,
-} from "@modular-forms/solid";
+import { createForm } from "@felte/solid";
+import { validator } from "@felte/validator-zod";
 import { A } from "@solidjs/router";
 import {
   Accessor,
@@ -16,7 +12,7 @@ import {
 
 import { createOrderMutation } from "rpc/mutations";
 import { searchOrdersQuery } from "rpc/queries";
-import { CreateOrderSchema, createOrderSchema } from "rpc/zod-schemas";
+import { CreateOrderSchema, createTagSchema } from "rpc/zod-schemas";
 
 import { Button } from "~/components/ui/button";
 import {
@@ -44,14 +40,15 @@ const CreateOrder: VoidComponent<{
 }> = (props) => {
   const createOrder = createOrderMutation();
 
-  const [createOrderForm, { Field, Form }] = createForm<CreateOrderSchema>({
-    validate: zodForm(createOrderSchema),
+  const { form, errors, isSubmitting, reset } = createForm<CreateOrderSchema>({
+    extend: validator({ schema: createTagSchema }),
+    onSubmit: async (data) => {
+      await createOrder.mutateAsync(data);
+
+      reset();
+      props.setOpen(false);
+    },
   });
-  const handleCreateSubmit: SubmitHandler<CreateOrderSchema> = async (data) => {
-    await createOrder.mutateAsync(data);
-    reset(createOrderForm, "description");
-    props.setOpen(false);
-  };
 
   return (
     <Dialog open={props.open()} onOpenChange={(v) => props.setOpen(v)}>
@@ -60,34 +57,26 @@ const CreateOrder: VoidComponent<{
           <DialogTitle>Create a new order</DialogTitle>
         </DialogHeader>
 
-        <Form
-          onSubmit={handleCreateSubmit}
-          class="flex w-full flex-col items-end gap-4"
-        >
-          <Field name="description">
-            {(field, props) => (
-              <FormItem class="w-full">
-                <FormLabel>Description</FormLabel>
-                <Input
-                  id="description"
-                  type="text"
-                  placeholder="Order 1"
-                  required
-                  {...props}
-                  value={field.value ?? ""}
-                  class="w-full"
-                />
-                <Show when={field.error}>
-                  {(msg) => <FormMessage>{msg()}</FormMessage>}
-                </Show>
-              </FormItem>
-            )}
-          </Field>
+        <form ref={form} class="flex w-full flex-col items-end gap-4">
+          <FormItem class="w-full">
+            <FormLabel>Description</FormLabel>
+            <Input
+              id="description"
+              name="description"
+              type="text"
+              placeholder="Order 1"
+              required
+              class="w-full"
+            />
+            <Show when={errors().description}>
+              {(msg) => <FormMessage>{msg().join(", ")}</FormMessage>}
+            </Show>
+          </FormItem>
 
           <Button type="submit" class="" disabled={createOrder.isPending}>
             Submit
           </Button>
-        </Form>
+        </form>
       </DialogContent>
     </Dialog>
   );
