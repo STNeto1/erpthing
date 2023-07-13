@@ -186,6 +186,13 @@ export const createOrderItemMutation = mutation$({
       });
 
       await tx
+        .update(orders)
+        .set({
+          total: sql`total + ${item.price * payload.quantity}`,
+        })
+        .where(eq(orders.id, payload.orderID));
+
+      await tx
         .update(items)
         .set({
           stock: item.stock - payload.quantity,

@@ -47,8 +47,8 @@ export const createOrderSchema = z.object({
 export type CreateOrderSchema = z.infer<typeof createOrderSchema>;
 
 export const createOrderItemSchema = z.object({
-  orderID: z.string(),
-  itemID: z.string(),
+  orderID: z.string().min(1),
+  itemID: z.string().min(1),
   quantity: z.number().min(1),
 });
 export type CreateOrderItemSchema = z.infer<typeof createOrderItemSchema>;
