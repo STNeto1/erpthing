@@ -14,6 +14,7 @@ import {
   deleteOrderItemSchema,
   deleteTagSchema,
   updateItemSchema,
+  updateOrderItemSchema,
   updateTagSchema,
 } from "~/server/api/zod-schemas";
 
@@ -277,4 +278,70 @@ export const deleteOrderItemMutation = mutation$({
   },
   key: "deleteOrderItemMutation",
   schema: deleteOrderItemSchema,
+});
+
+export const updateOrderItemMutation = mutation$({
+  mutationFn: async ({ payload }) => {
+    await db.transaction(async (tx) => {
+      const [order] = await tx
+        .select()
+        .from(orders)
+        .where(eq(orders.id, payload.orderID));
+      if (!order) {
+        throw new Error("Invalid order");
+      }
+
+      const [item] = await tx
+        .select()
+        .from(items)
+        .where(eq(items.id, payload.itemID));
+      if (!item) {
+        throw new Error("Invalid item");
+      }
+
+      const [orderItem] = await tx
+        .select()
+        .from(orderItems)
+        .where(
+          and(
+            eq(orderItems.orderID, payload.orderID),
+            eq(orderItems.itemID, payload.itemID),
+          ),
+        );
+
+      if (!orderItem) {
+        throw new Error("Order item not found");
+      }
+
+      await tx
+        .update(orders)
+        .set({
+          total: sql`total - ${orderItem.quantity * item.price} + ${
+            payload.quantity * item.price
+          }`,
+        })
+        .where(eq(orders.id, payload.orderID));
+
+      await tx
+        .update(items)
+        .set({
+          stock: sql`stock + ${orderItem.quantity} - ${payload.quantity}`,
+        })
+        .where(eq(items.id, payload.itemID));
+
+      await tx
+        .update(orderItems)
+        .set({
+          quantity: payload.quantity,
+        })
+        .where(
+          and(
+            eq(orderItems.orderID, payload.orderID),
+            eq(orderItems.itemID, payload.itemID),
+          ),
+        );
+    });
+  },
+  key: "updateOrderItemMutation",
+  schema: updateOrderItemSchema,
 });

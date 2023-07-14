@@ -1,15 +1,31 @@
 import { createForm } from "@felte/solid";
 import { validator } from "@felte/validator-zod";
 import { BsThreeDots } from "solid-icons/bs";
-import { createMemo, For, JSX, Show, type VoidComponent } from "solid-js";
+import {
+  createEffect,
+  createMemo,
+  createSignal,
+  For,
+  JSX,
+  Match,
+  Show,
+  Switch,
+  type VoidComponent,
+} from "solid-js";
 import { useParams } from "solid-start";
 
 import {
   createOrderItemMutation,
   deleteOrderItemMutation,
+  updateOrderItemMutation,
 } from "rpc/mutations";
 import { searchItemsQuery, showOrderQuery } from "rpc/queries";
-import { CreateOrderItemSchema, createOrderItemSchema } from "rpc/zod-schemas";
+import {
+  CreateOrderItemSchema,
+  createOrderItemSchema,
+  updateOrderItemSchema,
+  UpdateOrderItemSchema,
+} from "rpc/zod-schemas";
 
 import { Alert, AlertDescription, AlertTitle } from "~/components/ui/alert";
 import { Button } from "~/components/ui/button";
@@ -63,9 +79,11 @@ const ShowOrderPage: VoidComponent = () => {
   const itemQuery = showOrderQuery({
     id: params.id,
   });
+  const [updatingItem, setUpdatingItem] = createSignal<string | null>(null);
 
   const searchItems = searchItemsQuery();
   const createOrderItem = createOrderItemMutation();
+  const updateOrderItem = updateOrderItemMutation();
   const deleteOrderItem = deleteOrderItemMutation();
 
   const validItems = createMemo(() => {
@@ -77,6 +95,30 @@ const ShowOrderPage: VoidComponent = () => {
       return !itemIDs.includes(item.id);
     });
   });
+
+  const updateMeta = createForm<UpdateOrderItemSchema>({
+    initialValues: {},
+    extend: validator({ schema: updateOrderItemSchema }),
+    onSubmit: async (data) => {
+      await updateOrderItem.mutateAsync(data);
+      itemQuery.refetch();
+      setUpdatingItem(null);
+    },
+  });
+  const handleStartUpdate = (itemID: string | null) => {
+    if (!itemID) return;
+
+    const orderItem = itemQuery.data?.items.find(
+      (item) => item.itemID === itemID,
+    );
+    if (!orderItem) return;
+
+    updateMeta.setData("orderID", orderItem.orderID!);
+    updateMeta.setData("itemID", itemID);
+    updateMeta.setData("quantity", orderItem.quantity);
+
+    setUpdatingItem(itemID);
+  };
 
   const { form, errors, isSubmitting, reset, setData } =
     createForm<CreateOrderItemSchema>({
@@ -186,6 +228,7 @@ const ShowOrderPage: VoidComponent = () => {
                         <TableCell class="w-[7.5%] font-medium">
                           {elem.quantity}
                         </TableCell>
+
                         <TableCell class="w-[7.5%] font-medium">
                           {elem.item?.price}
                         </TableCell>
@@ -198,6 +241,14 @@ const ShowOrderPage: VoidComponent = () => {
 
                             <DropdownMenuPortal>
                               <DropdownMenuContent class="w-40">
+                                <DropdownMenuItem
+                                  class="py-0"
+                                  onSelect={() =>
+                                    handleStartUpdate(elem.itemID)
+                                  }
+                                >
+                                  <DropdownMenuLabel>Update</DropdownMenuLabel>
+                                </DropdownMenuItem>
                                 <DropdownMenuItem
                                   class="py-0"
                                   onSelect={() => handleDeleteItem(elem.itemID)}
@@ -214,81 +265,189 @@ const ShowOrderPage: VoidComponent = () => {
                 </TableBody>
               </Table>
 
-              <h4
-                class={cn(
-                  typographyVariants({
-                    variant: "lead",
-                  }),
-                  "pt-10 text-lg",
-                )}
-              >
-                Create new item
-              </h4>
+              <Switch>
+                <Match when={updatingItem()}>
+                  <h4
+                    class={cn(
+                      typographyVariants({
+                        variant: "lead",
+                      }),
+                      "pt-10 text-lg",
+                    )}
+                  >
+                    Updating item
+                  </h4>
 
-              <form ref={form} class="flex flex-col items-end gap-4">
-                <div class="flex w-full items-center gap-2">
-                  <FormItem class="w-full">
-                    <FormLabel>Item</FormLabel>
-                    <Select
+                  <form
+                    ref={updateMeta.form}
+                    class="flex flex-col items-end gap-4"
+                  >
+                    <Input
                       id="itemID"
                       name="itemID"
+                      type="text"
+                      placeholder="Item"
                       required
-                      onChange={(val) => setData("itemID", val)}
-                      options={
-                        validItems()
-                          .map((item) => item.id)
-                          .filter(Boolean) as string[]
-                      }
-                      placeholder="Select an item"
-                      itemComponent={(props) => (
-                        <SelectItem item={props.item}>
-                          {
-                            validItems().find(
-                              (item) => item.id === props.item.key,
-                            )?.name
-                          }
-                        </SelectItem>
-                      )}
-                    >
-                      <SelectTrigger>
-                        <SelectValue<string>>
-                          {(state) =>
-                            validItems().find(
-                              (item) => item.id === state.selectedOption(),
-                            )?.name
-                          }
-                        </SelectValue>
-                      </SelectTrigger>
-
-                      <SelectContent />
-                    </Select>
-                    <Show when={errors().itemID}>
-                      {(msg) => <FormMessage>{msg().join(", ")}</FormMessage>}
-                    </Show>
-                  </FormItem>
-
-                  <FormItem class="w-full">
-                    <FormLabel>Quantity</FormLabel>
-                    <Input
-                      id="quantity"
-                      name="quantity"
-                      type="number"
-                      placeholder="Qty"
-                      step={1}
-                      min={1}
-                      required
-                      class="w-full"
-                      disabled={isSubmitting()}
+                      class="hidden"
+                      value={updatingItem()}
                     />
-                    <Show when={errors().quantity}>
-                      {(msg) => <FormMessage>{msg().join(", ")}</FormMessage>}
-                    </Show>
-                  </FormItem>
-                </div>
-                <Button type="submit" class="w-40">
-                  Add item
-                </Button>
-              </form>
+
+                    <Input
+                      id="orderID"
+                      name="orderID"
+                      type="text"
+                      placeholder="Item"
+                      required
+                      class="hidden"
+                      value={params.id}
+                    />
+
+                    <div class="flex w-full items-center gap-2">
+                      <FormItem class="w-full">
+                        <FormLabel>Item</FormLabel>
+                        <Input
+                          type="text"
+                          placeholder="Item"
+                          required
+                          class="w-full"
+                          value={
+                            searchItems.data?.find(
+                              (f) => f.id === updatingItem(),
+                            )?.name
+                          }
+                          readOnly
+                        />
+                        <Show when={updateMeta.errors().itemID}>
+                          {(msg) => (
+                            <FormMessage>{msg().join(", ")}</FormMessage>
+                          )}
+                        </Show>
+                      </FormItem>
+
+                      <FormItem class="w-full">
+                        <FormLabel>Quantity</FormLabel>
+                        <Input
+                          id="quantity"
+                          name="quantity"
+                          type="number"
+                          placeholder="Qty"
+                          step={1}
+                          min={1}
+                          value={
+                            itemQuery.data?.items.find(
+                              (f) => f.itemID === updatingItem(),
+                            )?.quantity ?? 10
+                          }
+                          required
+                          class="w-full"
+                          disabled={isSubmitting()}
+                        />
+                        <Show when={updateMeta.errors().quantity}>
+                          {(msg) => (
+                            <FormMessage>{msg().join(", ")}</FormMessage>
+                          )}
+                        </Show>
+                      </FormItem>
+                    </div>
+
+                    <div class="flex items-center gap-4">
+                      <Button
+                        type="button"
+                        class="w-40"
+                        variant={"outline"}
+                        onClick={() => setUpdatingItem(null)}
+                      >
+                        Reset
+                      </Button>
+                      <Button type="submit" class="w-40">
+                        Update item
+                      </Button>
+                    </div>
+                  </form>
+                </Match>
+
+                <Match when={!updatingItem()}>
+                  <h4
+                    class={cn(
+                      typographyVariants({
+                        variant: "lead",
+                      }),
+                      "pt-10 text-lg",
+                    )}
+                  >
+                    Create new item
+                  </h4>
+
+                  <form ref={form} class="flex flex-col items-end gap-4">
+                    <div class="flex w-full items-center gap-2">
+                      <FormItem class="w-full">
+                        <FormLabel>Item</FormLabel>
+                        <Select
+                          id="itemID"
+                          name="itemID"
+                          required
+                          onChange={(val) => setData("itemID", val)}
+                          options={
+                            validItems()
+                              .map((item) => item.id)
+                              .filter(Boolean) as string[]
+                          }
+                          placeholder="Select an item"
+                          itemComponent={(props) => (
+                            <SelectItem item={props.item}>
+                              {
+                                validItems().find(
+                                  (item) => item.id === props.item.key,
+                                )?.name
+                              }
+                            </SelectItem>
+                          )}
+                        >
+                          <SelectTrigger>
+                            <SelectValue<string>>
+                              {(state) =>
+                                validItems().find(
+                                  (item) => item.id === state.selectedOption(),
+                                )?.name
+                              }
+                            </SelectValue>
+                          </SelectTrigger>
+
+                          <SelectContent />
+                        </Select>
+                        <Show when={errors().itemID}>
+                          {(msg) => (
+                            <FormMessage>{msg().join(", ")}</FormMessage>
+                          )}
+                        </Show>
+                      </FormItem>
+
+                      <FormItem class="w-full">
+                        <FormLabel>Quantity</FormLabel>
+                        <Input
+                          id="quantity"
+                          name="quantity"
+                          type="number"
+                          placeholder="Qty"
+                          step={1}
+                          min={1}
+                          required
+                          class="w-full"
+                          disabled={isSubmitting()}
+                        />
+                        <Show when={errors().quantity}>
+                          {(msg) => (
+                            <FormMessage>{msg().join(", ")}</FormMessage>
+                          )}
+                        </Show>
+                      </FormItem>
+                    </div>
+                    <Button type="submit" class="w-40">
+                      Add item
+                    </Button>
+                  </form>
+                </Match>
+              </Switch>
             </div>
           </>
         )}
