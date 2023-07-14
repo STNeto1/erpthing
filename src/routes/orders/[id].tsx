@@ -289,7 +289,7 @@ const ShowOrderPage: VoidComponent = () => {
                       placeholder="Item"
                       required
                       class="hidden"
-                      value={updatingItem()}
+                      value={updatingItem() ?? ''}
                     />
 
                     <Input
