@@ -53,6 +53,13 @@ export const createOrderItemSchema = z.object({
 });
 export type CreateOrderItemSchema = z.infer<typeof createOrderItemSchema>;
 
+export const deleteOrderItemSchema = z.object({
+  orderID: z.string().min(1),
+  itemID: z.string().min(1),
+});
+export type DeleteOrderItemSchema = z.infer<typeof deleteOrderItemSchema>;
+
+
 // export const updateOrderSchema = z.object({
 //   id: z.string(),
 //   name: z.string().min(4),

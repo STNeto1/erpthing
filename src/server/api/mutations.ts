@@ -11,6 +11,7 @@ import {
   createOrderSchema,
   createTagSchema,
   deleteItemSchema,
+  deleteOrderItemSchema,
   deleteTagSchema,
   updateItemSchema,
   updateTagSchema,
@@ -179,6 +180,19 @@ export const createOrderItemMutation = mutation$({
         throw new Error("Not enough stock");
       }
 
+      const [existingOrderItem] = await tx
+        .select()
+        .from(orderItems)
+        .where(
+          and(
+            eq(orderItems.orderID, payload.orderID),
+            eq(orderItems.itemID, payload.itemID),
+          ),
+        );
+      if (existingOrderItem) {
+        throw new Error("Item already in order");
+      }
+
       await tx.insert(orderItems).values({
         orderID: payload.orderID,
         itemID: payload.itemID,
@@ -202,4 +216,65 @@ export const createOrderItemMutation = mutation$({
   },
   key: "createOrderItemMutation",
   schema: createOrderItemSchema,
+});
+
+export const deleteOrderItemMutation = mutation$({
+  mutationFn: async ({ payload }) => {
+    await db.transaction(async (tx) => {
+      const [order] = await tx
+        .select()
+        .from(orders)
+        .where(eq(orders.id, payload.orderID));
+      if (!order) {
+        throw new Error("Invalid order");
+      }
+
+      const [item] = await tx
+        .select()
+        .from(items)
+        .where(eq(items.id, payload.itemID));
+      if (!item) {
+        throw new Error("Invalid item");
+      }
+
+      const [orderItem] = await tx
+        .select()
+        .from(orderItems)
+        .where(
+          and(
+            eq(orderItems.orderID, payload.orderID),
+            eq(orderItems.itemID, payload.itemID),
+          ),
+        );
+
+      if (!orderItem) {
+        throw new Error("Order item not found");
+      }
+
+      await tx
+        .update(orders)
+        .set({
+          total: sql`total - ${orderItem.quantity * item.price}`,
+        })
+        .where(eq(orders.id, payload.orderID));
+
+      await tx
+        .update(items)
+        .set({
+          stock: sql`stock + ${orderItem.quantity}`,
+        })
+        .where(eq(items.id, payload.itemID));
+
+      await tx
+        .delete(orderItems)
+        .where(
+          and(
+            eq(orderItems.orderID, payload.orderID),
+            eq(orderItems.itemID, payload.itemID),
+          ),
+        );
+    });
+  },
+  key: "deleteOrderItemMutation",
+  schema: deleteOrderItemSchema,
 });

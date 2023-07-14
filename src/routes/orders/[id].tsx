@@ -1,12 +1,26 @@
 import { createForm } from "@felte/solid";
 import { validator } from "@felte/validator-zod";
-import { For, JSX, Show, type VoidComponent } from "solid-js";
+import { BsThreeDots } from "solid-icons/bs";
+import { createMemo, For, JSX, Show, type VoidComponent } from "solid-js";
 import { useParams } from "solid-start";
 
+import {
+  createOrderItemMutation,
+  deleteOrderItemMutation,
+} from "rpc/mutations";
 import { searchItemsQuery, showOrderQuery } from "rpc/queries";
+import { CreateOrderItemSchema, createOrderItemSchema } from "rpc/zod-schemas";
 
 import { Alert, AlertDescription, AlertTitle } from "~/components/ui/alert";
 import { Button } from "~/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuPortal,
+  DropdownMenuTrigger,
+} from "~/components/ui/dropdown-menu";
 import { FormItem, FormLabel, FormMessage } from "~/components/ui/form";
 import { Input } from "~/components/ui/input";
 import {
@@ -27,11 +41,6 @@ import {
 } from "~/components/ui/table";
 import { typographyVariants } from "~/components/ui/typography";
 import { cn } from "~/lib/utils";
-import { createOrderItemMutation } from "~/server/api/mutations";
-import {
-  CreateOrderItemSchema,
-  createOrderItemSchema,
-} from "~/server/api/zod-schemas";
 
 const Elem: VoidComponent<
   JSX.HTMLAttributes<HTMLDivElement> & {
@@ -56,7 +65,18 @@ const ShowOrderPage: VoidComponent = () => {
   });
 
   const searchItems = searchItemsQuery();
-  const createMutation = createOrderItemMutation();
+  const createOrderItem = createOrderItemMutation();
+  const deleteOrderItem = deleteOrderItemMutation();
+
+  const validItems = createMemo(() => {
+    if (!searchItems.data) return [];
+    if (!itemQuery.data) return [];
+
+    const itemIDs = itemQuery.data.items.map((item) => item.itemID);
+    return searchItems.data.filter((item) => {
+      return !itemIDs.includes(item.id);
+    });
+  });
 
   const { form, errors, isSubmitting, reset, setData } =
     createForm<CreateOrderItemSchema>({
@@ -67,12 +87,21 @@ const ShowOrderPage: VoidComponent = () => {
       },
       extend: validator({ schema: createOrderItemSchema }),
       onSubmit: async (data) => {
-        await createMutation.mutateAsync(data);
+        await createOrderItem.mutateAsync(data);
         reset();
         itemQuery.refetch();
-        // props.setOpen(false);
       },
     });
+
+  const handleDeleteItem = async (itemID: string | null) => {
+    if (!itemID) return;
+
+    await deleteOrderItem.mutateAsync({
+      itemID,
+      orderID: params.id,
+    });
+    itemQuery.refetch();
+  };
 
   return (
     <section class="container max-w-6xl">
@@ -121,6 +150,16 @@ const ShowOrderPage: VoidComponent = () => {
               >
                 Items
               </h4>
+
+              <Show when={deleteOrderItem.error || createOrderItem.error}>
+                {(err) => (
+                  <Alert variant="destructive" class="my-10">
+                    <AlertTitle>Error</AlertTitle>
+                    <AlertDescription>{err().message}</AlertDescription>
+                  </Alert>
+                )}
+              </Show>
+
               <Table>
                 <TableHeader>
                   <TableRow>
@@ -130,7 +169,7 @@ const ShowOrderPage: VoidComponent = () => {
                     <TableHead>Quantity</TableHead>
                     <TableHead>Price</TableHead>
 
-                    {/* <TableHead class="text-right"></TableHead> */}
+                    <TableHead class="text-right"></TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -149,6 +188,25 @@ const ShowOrderPage: VoidComponent = () => {
                         </TableCell>
                         <TableCell class="w-[7.5%] font-medium">
                           {elem.item?.price}
+                        </TableCell>
+
+                        <TableCell class="w-[5%] font-medium">
+                          <DropdownMenu>
+                            <DropdownMenuTrigger class="flex items-center ">
+                              <BsThreeDots class="h-5 w-5" />
+                            </DropdownMenuTrigger>
+
+                            <DropdownMenuPortal>
+                              <DropdownMenuContent class="w-40">
+                                <DropdownMenuItem
+                                  class="py-0"
+                                  onSelect={() => handleDeleteItem(elem.itemID)}
+                                >
+                                  <DropdownMenuLabel>Delete</DropdownMenuLabel>
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenuPortal>
+                          </DropdownMenu>
                         </TableCell>
                       </TableRow>
                     )}
@@ -177,17 +235,17 @@ const ShowOrderPage: VoidComponent = () => {
                       required
                       onChange={(val) => setData("itemID", val)}
                       options={
-                        searchItems.data
-                          ?.map((item) => item.id)
+                        validItems()
+                          .map((item) => item.id)
                           .filter(Boolean) as string[]
                       }
                       placeholder="Select an item"
                       itemComponent={(props) => (
                         <SelectItem item={props.item}>
                           {
-                            searchItems.data?.find(
-                              (item) => item.id === props.item.rawValue,
-                            )?.description
+                            validItems().find(
+                              (item) => item.id === props.item.key,
+                            )?.name
                           }
                         </SelectItem>
                       )}
@@ -195,9 +253,9 @@ const ShowOrderPage: VoidComponent = () => {
                       <SelectTrigger>
                         <SelectValue<string>>
                           {(state) =>
-                            searchItems.data?.find(
+                            validItems().find(
                               (item) => item.id === state.selectedOption(),
-                            )?.description
+                            )?.name
                           }
                         </SelectValue>
                       </SelectTrigger>
