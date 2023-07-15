@@ -9,10 +9,15 @@ import {
   Show,
   type VoidComponent,
 } from "solid-js";
+import { createStore } from "solid-js/store";
 
 import { createOrderMutation } from "rpc/mutations";
-import { searchOrdersQuery } from "rpc/queries";
-import { CreateOrderSchema, createTagSchema } from "rpc/zod-schemas";
+import { searchOrdersQuery, searchUsersQuery } from "rpc/queries";
+import {
+  CreateOrderSchema,
+  createTagSchema,
+  SearchOrdersSchema,
+} from "rpc/zod-schemas";
 
 import { Button } from "~/components/ui/button";
 import {
@@ -24,6 +29,13 @@ import {
 import { FormItem, FormLabel, FormMessage } from "~/components/ui/form";
 import { Input } from "~/components/ui/input";
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "~/components/ui/select";
+import {
   Table,
   TableBody,
   TableCell,
@@ -32,6 +44,7 @@ import {
   TableRow,
 } from "~/components/ui/table";
 import { typographyVariants } from "~/components/ui/typography";
+import { orders } from "~/db/schema";
 import { cn } from "~/lib/utils";
 
 const CreateOrder: VoidComponent<{
@@ -40,7 +53,7 @@ const CreateOrder: VoidComponent<{
 }> = (props) => {
   const createOrder = createOrderMutation();
 
-  const { form, errors, isSubmitting, reset } = createForm<CreateOrderSchema>({
+  const { form, errors, reset } = createForm<CreateOrderSchema>({
     extend: validator({ schema: createTagSchema }),
     onSubmit: async (data) => {
       await createOrder.mutateAsync(data);
@@ -84,7 +97,20 @@ const CreateOrder: VoidComponent<{
 
 const OrdersIndexPage: VoidComponent = () => {
   const [openCreate, setOpenCreate] = createSignal(false);
-  const searchOrders = searchOrdersQuery();
+
+  const [searchStore, setSearchStore] = createStore<SearchOrdersSchema>({
+    description: undefined,
+    user: undefined,
+    status: undefined,
+  });
+
+  const usersQuery = searchUsersQuery();
+  const searchOrders = searchOrdersQuery(
+    () => searchStore,
+    () => ({
+      suspense: true,
+    }),
+  );
 
   createEffect(() => {
     if (!openCreate()) {
@@ -113,6 +139,81 @@ const OrdersIndexPage: VoidComponent = () => {
           Create Order
         </Button>
         <CreateOrder open={openCreate} setOpen={setOpenCreate} />
+      </div>
+
+      <div class="flex flex-col gap-2">
+        <h4
+          class={cn(
+            typographyVariants({
+              variant: "small",
+            }),
+          )}
+        >
+          Search
+        </h4>
+        <div class="flex gap-2">
+          <Input
+            id="description"
+            name="description"
+            type="text"
+            placeholder="Order 1"
+            class="w-full"
+            value={searchStore.description}
+            onInput={(e) => setSearchStore("description", e.target.value)}
+          />
+
+          <Select
+            class="w-full"
+            value={searchStore.user}
+            onChange={(val) => setSearchStore("user", val)}
+            options={
+              (usersQuery?.data ?? [])
+                .map((item) => item.id)
+                .filter(Boolean) as string[]
+            }
+            placeholder="Select an user"
+            itemComponent={(props) => (
+              <SelectItem item={props.item}>
+                {
+                  (usersQuery?.data ?? []).find(
+                    (item) => item.id === props.item.key,
+                  )?.name
+                }
+              </SelectItem>
+            )}
+          >
+            <SelectTrigger>
+              <SelectValue<string>>
+                {(state) =>
+                  (usersQuery?.data ?? []).find(
+                    (item) => item.id === state.selectedOption(),
+                  )?.name
+                }
+              </SelectValue>
+            </SelectTrigger>
+
+            <SelectContent />
+          </Select>
+
+          <Select
+            class="w-full"
+            value={searchStore.status}
+            onChange={(val) => setSearchStore("status", val)}
+            options={orders.status.enumValues}
+            placeholder="Select an item"
+            itemComponent={(props) => (
+              <SelectItem item={props.item}>{props.item.key}</SelectItem>
+            )}
+          >
+            <SelectTrigger>
+              <SelectValue<string>>
+                {(state) => state.selectedOption()}
+              </SelectValue>
+            </SelectTrigger>
+
+            <SelectContent />
+          </Select>
+        </div>
       </div>
 
       <Table>

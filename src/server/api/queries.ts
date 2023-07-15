@@ -1,12 +1,14 @@
 import { query$ } from "@prpc/solid";
-import { and, eq, isNull, sql } from "drizzle-orm";
+import { and, eq, isNull, like, SQL, sql } from "drizzle-orm";
 import { User } from "lucia";
 import { z } from "zod";
+
+import { searchOrdersSchema } from "rpc/zod-schemas";
 
 import { auth } from "~/auth/lucia.server";
 import { db } from "~/db/connection";
 import { fetchUserFromId } from "~/db/core";
-import { items, itemsToTags, orders, tags } from "~/db/schema";
+import { items, itemsToTags, orders, tags, users } from "~/db/schema";
 
 export const userQuery = query$({
   queryFn: async ({ request$ }) => {
@@ -25,6 +27,13 @@ export const userQuery = query$({
     return fetchUserFromId(session.user.userId);
   },
   key: "user",
+});
+
+export const searchUsersQuery = query$({
+  queryFn: async () => {
+    return await db.select().from(users);
+  },
+  key: "usersQuery",
 });
 
 export const searchTagsQuery = query$({
@@ -86,14 +95,30 @@ export const showItemQuery = query$({
 });
 
 export const searchOrdersQuery = query$({
-  queryFn: async ({}) => {
+  queryFn: async ({ payload }) => {
+    const where: SQL[] = [];
+
+    if (payload.description) {
+      where.push(like(orders.description, `%${payload.description}%`));
+    }
+
+    if (payload.status) {
+      where.push(eq(orders.status, payload.status));
+    }
+
+    if (payload.user) {
+      where.push(eq(orders.userID, payload.user));
+    }
+
     return db.query.orders.findMany({
+      where: and(...where),
       with: {
         user: true,
       },
     });
   },
   key: "searchOrders",
+  schema: searchOrdersSchema,
 });
 
 export const showOrderQuery = query$({

@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-import { DOrder } from "~/db/schema";
+import { DOrder, orders } from "~/db/schema";
 
 // ----- Tag -----
 export const createTagSchema = z.object({
@@ -43,6 +43,13 @@ export const deleteItemSchema = z.object({
 });
 
 // ----- Order -----
+export const searchOrdersSchema = z.object({
+  description: z.optional(z.string()),
+  status: z.optional(z.enum(orders.status.enumValues)),
+  user: z.optional(z.string()),
+});
+export type SearchOrdersSchema = z.infer<typeof searchOrdersSchema>;
+
 export const createOrderSchema = z.object({
   description: z.string().min(4),
 });
