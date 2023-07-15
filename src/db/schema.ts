@@ -121,6 +121,7 @@ export const orders = mysqlTable("orders", {
     mode: "string",
   }).defaultNow(),
 });
+export type DOrder = InferModel<typeof orders>;
 
 export const orderItems = mysqlTable(
   "order_items",

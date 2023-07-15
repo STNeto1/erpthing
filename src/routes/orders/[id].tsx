@@ -17,6 +17,9 @@ import { useParams } from "solid-start";
 import {
   createOrderItemMutation,
   deleteOrderItemMutation,
+  updateOrderAsCancelledMutation,
+  updateOrderAsCompletedMutation,
+  updateOrderAsPaidMutation,
   updateOrderItemMutation,
 } from "rpc/mutations";
 import { searchItemsQuery, showOrderQuery } from "rpc/queries";
@@ -82,6 +85,11 @@ const ShowOrderPage: VoidComponent = () => {
   const [updatingItem, setUpdatingItem] = createSignal<string | null>(null);
 
   const searchItems = searchItemsQuery();
+
+  const markOrderAsPaid = updateOrderAsPaidMutation();
+  const markOrderAsCancelled = updateOrderAsCancelledMutation();
+  const markOrderAsCompleted = updateOrderAsCompletedMutation();
+
   const createOrderItem = createOrderItemMutation();
   const updateOrderItem = updateOrderItemMutation();
   const deleteOrderItem = deleteOrderItemMutation();
@@ -94,6 +102,11 @@ const ShowOrderPage: VoidComponent = () => {
     return searchItems.data.filter((item) => {
       return !itemIDs.includes(item.id);
     });
+  });
+  const showAdd = createMemo(() => {
+    if (!validItems().length) return false;
+
+    return true;
   });
 
   const updateMeta = createForm<UpdateOrderItemSchema>({
@@ -145,6 +158,40 @@ const ShowOrderPage: VoidComponent = () => {
     itemQuery.refetch();
   };
 
+  const isUpdatingStatus = createMemo(() => {
+    return (
+      markOrderAsPaid.isPending ||
+      markOrderAsCancelled.isPending ||
+      markOrderAsCompleted.isPending
+    );
+  });
+  const handleUpdateStatus = async (
+    orderID: string | null,
+    status: "paid" | "cancelled" | "completed",
+  ) => {
+    if (!orderID) return;
+
+    if (status === "paid") {
+      await markOrderAsPaid.mutateAsync({
+        orderID,
+      });
+    }
+
+    if (status === "completed") {
+      await markOrderAsCompleted.mutateAsync({
+        orderID,
+      });
+    }
+
+    if (status === "cancelled") {
+      await markOrderAsCancelled.mutateAsync({
+        orderID,
+      });
+    }
+
+    itemQuery.refetch();
+  };
+
   return (
     <section class="container max-w-6xl">
       <Show when={itemQuery.isLoading}>Loading...</Show>
@@ -177,7 +224,57 @@ const ShowOrderPage: VoidComponent = () => {
               <Elem label="User" value={item().user?.name} />
               <Elem label="Status" value={item().status} />
               <Elem label="Created" value={item().createdAt} />
+              <Elem
+                label="Options"
+                value={
+                  <div class="flex items-center gap-2 pt-1">
+                    <Button
+                      class={"h-6"}
+                      disabled={
+                        item().status !== "pending" || isUpdatingStatus()
+                      }
+                      variant={"secondary"}
+                      onClick={() => handleUpdateStatus(item().id, "paid")}
+                    >
+                      Pay
+                    </Button>
+                    <Button
+                      class={"h-6"}
+                      disabled={item().status !== "paid" || isUpdatingStatus()}
+                      variant={"secondary"}
+                      onClick={() => handleUpdateStatus(item().id, "completed")}
+                    >
+                      Complete
+                    </Button>
+                    <Button
+                      class={"h-6"}
+                      disabled={
+                        item().status !== "pending" || isUpdatingStatus()
+                      }
+                      variant={"secondary"}
+                      onClick={() => handleUpdateStatus(item().id, "cancelled")}
+                    >
+                      Cancel
+                    </Button>
+                  </div>
+                }
+              />
             </div>
+
+            <Show
+              when={
+                markOrderAsPaid.error ||
+                markOrderAsCancelled.error ||
+                markOrderAsCompleted.error
+              }
+            >
+              {(err) => (
+                <Alert variant="destructive">
+                  <AlertTitle>Error updating status</AlertTitle>
+                  <AlertDescription>{err().message}</AlertDescription>
+                </Alert>
+              )}
+            </Show>
 
             <Separator orientation="horizontal" />
 
@@ -289,7 +386,7 @@ const ShowOrderPage: VoidComponent = () => {
                       placeholder="Item"
                       required
                       class="hidden"
-                      value={updatingItem() ?? ''}
+                      value={updatingItem() ?? ""}
                     />
 
                     <Input
@@ -366,7 +463,14 @@ const ShowOrderPage: VoidComponent = () => {
                   </form>
                 </Match>
 
-                <Match when={!updatingItem()}>
+                <Match when={!updatingItem() && !showAdd()}>
+                  <Alert variant="default" class="mt-10">
+                    <AlertTitle>Alert</AlertTitle>
+                    <AlertDescription>No items to add</AlertDescription>
+                  </Alert>
+                </Match>
+
+                <Match when={!updatingItem() && showAdd()}>
                   <h4
                     class={cn(
                       typographyVariants({

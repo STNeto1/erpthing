@@ -15,6 +15,7 @@ import {
   deleteTagSchema,
   updateItemSchema,
   updateOrderItemSchema,
+  updateOrderSchema,
   updateTagSchema,
 } from "~/server/api/zod-schemas";
 
@@ -51,7 +52,6 @@ export const deleteTagMutation = mutation$({
   schema: deleteTagSchema,
 });
 
-// ----- Item -----
 export const createItemMutation = mutation$({
   mutationFn: async ({ payload, request$ }) => {
     const authRequest = auth.handleRequest(request$);
@@ -156,6 +156,90 @@ export const createOrderMutation = mutation$({
   },
   key: "createOrderMutation",
   schema: createOrderSchema,
+});
+
+export const updateOrderAsPaidMutation = mutation$({
+  mutationFn: async ({ payload }) => {
+    await db.transaction(async (tx) => {
+      const [order] = await tx
+        .select()
+        .from(orders)
+        .where(eq(orders.id, payload.orderID));
+
+      if (!order) {
+        throw new Error("Invalid order");
+      }
+
+      if (order.status !== "pending") {
+        throw new Error("Invalid order status");
+      }
+
+      await tx
+        .update(orders)
+        .set({
+          status: "paid",
+        })
+        .where(eq(orders.id, payload.orderID));
+    });
+  },
+  key: "updateOrderAsPaidMutation",
+  schema: updateOrderSchema,
+});
+
+export const updateOrderAsCompletedMutation = mutation$({
+  mutationFn: async ({ payload }) => {
+    await db.transaction(async (tx) => {
+      const [order] = await tx
+        .select()
+        .from(orders)
+        .where(eq(orders.id, payload.orderID));
+
+      if (!order) {
+        throw new Error("Invalid order");
+      }
+
+      if (order.status !== "paid") {
+        throw new Error("Invalid order status");
+      }
+
+      await tx
+        .update(orders)
+        .set({
+          status: "completed",
+        })
+        .where(eq(orders.id, payload.orderID));
+    });
+  },
+  key: "updateOrderAsCompletedMutation",
+  schema: updateOrderSchema,
+});
+
+export const updateOrderAsCancelledMutation = mutation$({
+  mutationFn: async ({ payload }) => {
+    await db.transaction(async (tx) => {
+      const [order] = await tx
+        .select()
+        .from(orders)
+        .where(eq(orders.id, payload.orderID));
+
+      if (!order) {
+        throw new Error("Invalid order");
+      }
+
+      if (order.status !== "pending") {
+        throw new Error("Invalid order status");
+      }
+
+      await tx
+        .update(orders)
+        .set({
+          status: "cancelled",
+        })
+        .where(eq(orders.id, payload.orderID));
+    });
+  },
+  key: "updateOrderAsCancelledMutation",
+  schema: updateOrderSchema,
 });
 
 export const createOrderItemMutation = mutation$({
