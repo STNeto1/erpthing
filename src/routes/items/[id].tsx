@@ -1,11 +1,10 @@
 import { For, JSX, Show, type VoidComponent } from "solid-js";
 import { useParams } from "solid-start";
 
-import { showItemQuery } from "rpc/queries";
-
 import { Alert, AlertDescription, AlertTitle } from "~/components/ui/alert";
 import { Badge } from "~/components/ui/badge";
 import { typographyVariants } from "~/components/ui/typography";
+import { trpc } from "~/lib/trpc";
 
 const Elem: VoidComponent<{
   label: string;
@@ -23,9 +22,9 @@ const Elem: VoidComponent<{
 
 const ShowItemPage: VoidComponent = () => {
   const params = useParams();
-  const itemQuery = showItemQuery({
+  const itemQuery = trpc.items.showItem.useQuery(() => ({
     id: params.id,
-  });
+  }));
 
   return (
     <section class="container">

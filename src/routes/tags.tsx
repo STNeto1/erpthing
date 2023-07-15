@@ -11,12 +11,6 @@ import {
 } from "solid-js";
 
 import {
-  createTagMutation,
-  deleteTagMutation,
-  updateTagMutation,
-} from "rpc/mutations";
-import { searchTagsQuery } from "rpc/queries";
-import {
   CreateTagSchema,
   createTagSchema,
   UpdateTagSchema,
@@ -52,13 +46,14 @@ import {
 import { typographyVariants } from "~/components/ui/typography";
 import { UserNav } from "~/components/user-nav";
 import { DTag } from "~/db/schema";
+import { trpc } from "~/lib/trpc";
 import { cn } from "~/lib/utils";
 
 const CreateTagForm: VoidComponent<{
   open: Accessor<boolean>;
   setOpen: (open: boolean) => void;
 }> = (props) => {
-  const createTag = createTagMutation();
+  const createTag = trpc.tags.createTag.useMutation();
 
   const { form, errors, isSubmitting, reset } = createForm<CreateTagSchema>({
     extend: validator({ schema: createTagSchema }),
@@ -110,7 +105,7 @@ const UpdateTagForm: VoidComponent<{
   data: DTag;
   close: () => void;
 }> = (props) => {
-  const updateTag = updateTagMutation();
+  const updateTag = trpc.tags.updateTag.useMutation();
 
   const { form, errors, reset } = createForm<UpdateTagSchema>({
     initialValues: {
@@ -162,8 +157,8 @@ const TagsLayout: VoidComponent = () => {
   const [openCreate, setOpenCreate] = createSignal(false);
   const [isUpdating, setIsUpdating] = createSignal<DTag | null>(null);
 
-  const searchTags = searchTagsQuery();
-  const deleteTag = deleteTagMutation();
+  const searchTags = trpc.tags.searchTags.useQuery();
+  const deleteTag = trpc.tags.deleteTag.useMutation();
 
   const handleStartUpdate = (id: string) => {
     const tag = searchTags.data?.find((t) => t.id === id);

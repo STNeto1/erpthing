@@ -2,7 +2,6 @@ import { createForm } from "@felte/solid";
 import { validator } from "@felte/validator-zod";
 import { BsThreeDots } from "solid-icons/bs";
 import {
-  createEffect,
   createMemo,
   createSignal,
   For,
@@ -13,22 +12,6 @@ import {
   type VoidComponent,
 } from "solid-js";
 import { useParams } from "solid-start";
-
-import {
-  createOrderItemMutation,
-  deleteOrderItemMutation,
-  updateOrderAsCancelledMutation,
-  updateOrderAsCompletedMutation,
-  updateOrderAsPaidMutation,
-  updateOrderItemMutation,
-} from "rpc/mutations";
-import { searchItemsQuery, showOrderQuery } from "rpc/queries";
-import {
-  CreateOrderItemSchema,
-  createOrderItemSchema,
-  updateOrderItemSchema,
-  UpdateOrderItemSchema,
-} from "rpc/zod-schemas";
 
 import { Alert, AlertDescription, AlertTitle } from "~/components/ui/alert";
 import { Button } from "~/components/ui/button";
@@ -59,7 +42,14 @@ import {
   TableRow,
 } from "~/components/ui/table";
 import { typographyVariants } from "~/components/ui/typography";
+import { trpc } from "~/lib/trpc";
 import { cn } from "~/lib/utils";
+import {
+  createOrderItemSchema,
+  CreateOrderItemSchema,
+  updateOrderItemSchema,
+  UpdateOrderItemSchema,
+} from "~/server/api/zod-schemas";
 
 const Elem: VoidComponent<
   JSX.HTMLAttributes<HTMLDivElement> & {
@@ -79,20 +69,20 @@ const Elem: VoidComponent<
 
 const ShowOrderPage: VoidComponent = () => {
   const params = useParams();
-  const itemQuery = showOrderQuery({
+  const itemQuery = trpc.orders.showOrder.useQuery(() => ({
     id: params.id,
-  });
+  }));
   const [updatingItem, setUpdatingItem] = createSignal<string | null>(null);
 
-  const searchItems = searchItemsQuery();
+  const searchItems = trpc.items.searchItems.useQuery();
 
-  const markOrderAsPaid = updateOrderAsPaidMutation();
-  const markOrderAsCancelled = updateOrderAsCancelledMutation();
-  const markOrderAsCompleted = updateOrderAsCompletedMutation();
+  const markOrderAsPaid = trpc.orders.updateOrderAsPaid.useMutation();
+  const markOrderAsCancelled = trpc.orders.updateOrderAsCancelled.useMutation();
+  const markOrderAsCompleted = trpc.orders.updateOrderAsCompleted.useMutation();
 
-  const createOrderItem = createOrderItemMutation();
-  const updateOrderItem = updateOrderItemMutation();
-  const deleteOrderItem = deleteOrderItemMutation();
+  const createOrderItem = trpc.orders.createOrderItem.useMutation();
+  const updateOrderItem = trpc.orders.updateOrderItem.useMutation();
+  const deleteOrderItem = trpc.orders.deleteOrderItem.useMutation();
 
   const validItems = createMemo(() => {
     if (!searchItems.data) return [];

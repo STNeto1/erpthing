@@ -11,19 +11,6 @@ import {
 } from "solid-js";
 import { useNavigate } from "solid-start";
 
-import {
-  createItemMutation,
-  deleteItemMutation,
-  updateItemMutation,
-} from "rpc/mutations";
-import { searchItemsQuery, searchTagsQuery } from "rpc/queries";
-import {
-  CreateItemSchema,
-  createItemSchema,
-  updateItemSchema,
-  UpdateItemSchema,
-} from "rpc/zod-schemas";
-
 import { Alert, AlertDescription, AlertTitle } from "~/components/ui/alert";
 import { Button } from "~/components/ui/button";
 import {
@@ -53,14 +40,21 @@ import {
 } from "~/components/ui/table";
 import { typographyVariants } from "~/components/ui/typography";
 import { DItem, DItemsToTags, DUser } from "~/db/schema";
+import { trpc } from "~/lib/trpc";
 import { cn } from "~/lib/utils";
+import {
+  createItemSchema,
+  CreateItemSchema,
+  updateItemSchema,
+  UpdateItemSchema,
+} from "~/server/api/zod-schemas";
 
 const CreateItemForm: VoidComponent<{
   open: Accessor<boolean>;
   setOpen: (open: boolean) => void;
 }> = (props) => {
-  const createItem = createItemMutation();
-  const searchTags = searchTagsQuery();
+  const createItem = trpc.items.createItem.useMutation();
+  const searchTags = trpc.tags.searchTags.useQuery();
 
   const [selectedTags, setSelectedTags] = createSignal<string[]>([]);
   const handleCheckboxChange = (tag: string) => {
@@ -196,8 +190,8 @@ const UpdateItemForm: VoidComponent<{
   data: UpdateItem;
   onCompleted: () => void;
 }> = (props) => {
-  const updateItem = updateItemMutation();
-  const searchTags = searchTagsQuery();
+  const updateItem = trpc.items.updateItem.useMutation();
+  const searchTags = trpc.tags.searchTags.useQuery();
 
   const [selectedTags, setSelectedTags] = createSignal<string[]>([]);
   const handleCheckboxChange = (tag: string) => {
@@ -336,8 +330,8 @@ const ItemsIndexPage: VoidComponent = () => {
   const [openCreate, setOpenCreate] = createSignal(false);
   const [isUpdating, setIsUpdating] = createSignal<UpdateItem | null>(null);
 
-  const searchItems = searchItemsQuery();
-  const deleteItem = deleteItemMutation();
+  const searchItems = trpc.items.searchItems.useQuery();
+  const deleteItem = trpc.items.deleteItem.useMutation();
 
   const handleStartUpdate = (id: string) => {
     const elem = searchItems.data?.find((t) => t.id === id);

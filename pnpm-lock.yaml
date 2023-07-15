@@ -17,12 +17,6 @@ dependencies:
   '@planetscale/database':
     specifier: ^1.8.0
     version: 1.8.0
-  '@prpc/solid':
-    specifier: ^0.2.33
-    version: 0.2.33(@tanstack/solid-query@5.0.0-alpha.20)(solid-js@1.7.3)(solid-start@0.2.26)(zod@3.20.6)
-  '@prpc/vite':
-    specifier: ^0.3.21
-    version: 0.3.21(rollup@3.26.2)
   '@solidjs/meta':
     specifier: ^0.28.2
     version: 0.28.2(solid-js@1.7.3)
@@ -32,6 +26,12 @@ dependencies:
   '@tanstack/solid-query':
     specifier: 5.0.0-alpha.20
     version: 5.0.0-alpha.20(solid-js@1.7.3)
+  '@trpc/client':
+    specifier: ^10.34.0
+    version: 10.34.0(@trpc/server@10.34.0)
+  '@trpc/server':
+    specifier: ^10.34.0
+    version: 10.34.0
   class-variance-authority:
     specifier: ^0.6.1
     version: 0.6.1
@@ -53,6 +53,15 @@ dependencies:
   solid-start:
     specifier: ^0.2.26
     version: 0.2.26(@solidjs/meta@0.28.2)(@solidjs/router@0.8.2)(solid-js@1.7.3)(solid-start-node@0.2.26)(vite@4.1.2)
+  solid-start-trpc:
+    specifier: ^0.0.16
+    version: 0.0.16(@trpc/client@10.34.0)(@trpc/server@10.34.0)(solid-js@1.7.3)(solid-start@0.2.26)
+  solid-trpc:
+    specifier: 0.1.0-sssr.7
+    version: 0.1.0-sssr.7(@tanstack/solid-query@5.0.0-alpha.20)(@trpc/client@10.34.0)(@trpc/server@10.34.0)(solid-js@1.7.3)(solid-start@0.2.26)
+  superjson:
+    specifier: ^1.12.4
+    version: 1.12.4
   tailwind-merge:
     specifier: ^1.13.2
     version: 1.13.2
@@ -2116,60 +2125,6 @@ packages:
   /@polka/url@1.0.0-next.21:
     resolution: {integrity: sha512-a5Sab1C4/icpTZVzZc5Ghpz88yQtGOyNqYXcZgOssB2uuAr+wF/MvN6bgtW32q7HHrvBki+BsZ0OuNv6EV3K9g==}
 
-  /@prpc/compiler@0.3.20:
-    resolution: {integrity: sha512-5POvLiQI0GsPqefJyt2VL3Foj4sYfirATmL+MDy5La/b8jgTPNpn/oBBmP4rBd+RFs0vofnm+4lrwvMKIV1/aA==}
-    engines: {node: '>=10'}
-    dependencies:
-      '@babel/core': 7.22.8
-      '@babel/preset-typescript': 7.22.5(@babel/core@7.22.8)
-    transitivePeerDependencies:
-      - supports-color
-    dev: false
-
-  /@prpc/core@0.3.15(zod@3.20.6):
-    resolution: {integrity: sha512-3TxBNjpmycPuIhglxS91q8ApcO02P9mTcfiulE04i65nLwIK+zQEkvM535hAVwQEu0FihyM8Wq0VmCE2bn62bg==}
-    engines: {node: '>=16'}
-    peerDependencies:
-      zod: ^3.20.6
-    peerDependenciesMeta:
-      zod:
-        optional: true
-    dependencies:
-      zod: 3.20.6
-    dev: false
-
-  /@prpc/solid@0.2.33(@tanstack/solid-query@5.0.0-alpha.20)(solid-js@1.7.3)(solid-start@0.2.26)(zod@3.20.6):
-    resolution: {integrity: sha512-xEoJFKVXtXUDy3pbJPaUL9V/9kikka3JCvyM+FVtuCoXOTQIi6RvDucbaVK4K1QxsthiUR3TKwkamdM1WYpsnQ==}
-    engines: {node: '>=16'}
-    peerDependencies:
-      '@tanstack/solid-query': ^v5.0.0-alpha.2
-      solid-js: ^1.5.3
-      solid-start: ^0.2.0
-      zod: ^3.20.6
-    peerDependenciesMeta:
-      zod:
-        optional: true
-    dependencies:
-      '@prpc/core': 0.3.15(zod@3.20.6)
-      '@tanstack/solid-query': 5.0.0-alpha.20(solid-js@1.7.3)
-      solid-js: 1.7.3
-      solid-start: 0.2.26(@solidjs/meta@0.28.2)(@solidjs/router@0.8.2)(solid-js@1.7.3)(solid-start-node@0.2.26)(vite@4.1.2)
-      zod: 3.20.6
-    dev: false
-
-  /@prpc/vite@0.3.21(rollup@3.26.2):
-    resolution: {integrity: sha512-w3bRkUq5IzEpTjOkGYsYG7labqb1ELlrjQ/a8/QLSP5Uga7yvCdQAJMszWR21DqpW5girBc7/rYg7sEQS8bUjg==}
-    engines: {node: '>=10'}
-    dependencies:
-      '@babel/core': 7.22.8
-      '@babel/preset-typescript': 7.22.5(@babel/core@7.22.8)
-      '@prpc/compiler': 0.3.20
-      '@rollup/pluginutils': 5.0.2(rollup@3.26.2)
-    transitivePeerDependencies:
-      - rollup
-      - supports-color
-    dev: false
-
   /@rollup/plugin-commonjs@24.1.0(rollup@3.26.2):
     resolution: {integrity: sha512-eSL45hjhCWI0jCCXcNtLVqM5N1JlBGvlFfY0m6oOYnLCJ6N0qEXoZql4sY2MOUArzhH4SA/qBpTxvvZp2Sc+DQ==}
     engines: {node: '>=14.0.0'}
@@ -2345,6 +2300,18 @@ packages:
     dependencies:
       '@tanstack/query-core': 5.0.0-alpha.19
       solid-js: 1.7.3
+    dev: false
+
+  /@trpc/client@10.34.0(@trpc/server@10.34.0):
+    resolution: {integrity: sha512-nqtDTIqSY/9syo2EjSy4WWWXPU9GsamEh9Tsg698gLAh1nhgFc5+/YYeb+Ne1pbvWGZ5/3t9Dcz3h4wMyyJ9gQ==}
+    peerDependencies:
+      '@trpc/server': 10.34.0
+    dependencies:
+      '@trpc/server': 10.34.0
+    dev: false
+
+  /@trpc/server@10.34.0:
+    resolution: {integrity: sha512-2VMW44Fpaoyqb50dBtzdSWMhqt8lmoJiocEyBBeDb03R0W+XrzbVD5kU/wqKPlcp1DWeNCkOEIMtetMZCfo1hA==}
     dev: false
 
   /@types/babel__core@7.20.1:
@@ -2995,6 +2962,13 @@ packages:
 
   /convert-source-map@1.9.0:
     resolution: {integrity: sha512-ASFBup0Mz1uyiIjANan1jzLQami9z1PoYSZCiiYW2FczPbenXc45FZdBZLzOT+r6+iciuEModtmCti+hjaAk0A==}
+
+  /copy-anything@3.0.5:
+    resolution: {integrity: sha512-yCEafptTtb4bk7GLEQoM8KVJpxAfdBJYaXyzQEgQQQgYrZiDp8SJmGKlYza6CYjEDNstAdNdKA3UuoULlEbS6w==}
+    engines: {node: '>=12.13'}
+    dependencies:
+      is-what: 4.1.15
+    dev: false
 
   /core-js-compat@3.31.1:
     resolution: {integrity: sha512-wIDWd2s5/5aJSdpOJHfSibxNODxoGoWOBHt8JSPB41NOE94M7kuTPZCYLOlTtuoXTsBPKobpJ6T+y0SSy5L9SA==}
@@ -5046,6 +5020,20 @@ packages:
     transitivePeerDependencies:
       - supports-color
 
+  /solid-start-trpc@0.0.16(@trpc/client@10.34.0)(@trpc/server@10.34.0)(solid-js@1.7.3)(solid-start@0.2.26):
+    resolution: {integrity: sha512-99/EGIE0SObmCVhZR00bYpkEQpCDP22YgjalQpVgm0BKy2+tJzEC6vdvOII2Ppa0Fm7iPwc4LDZoFX2E3KYmsg==}
+    peerDependencies:
+      '@trpc/client': ^10.0.0
+      '@trpc/server': ^10.0.0
+      solid-js: ^1.5.7
+      solid-start: ^0.2.1
+    dependencies:
+      '@trpc/client': 10.34.0(@trpc/server@10.34.0)
+      '@trpc/server': 10.34.0
+      solid-js: 1.7.3
+      solid-start: 0.2.26(@solidjs/meta@0.28.2)(@solidjs/router@0.8.2)(solid-js@1.7.3)(solid-start-node@0.2.26)(vite@4.1.2)
+    dev: false
+
   /solid-start@0.2.26(@solidjs/meta@0.28.2)(@solidjs/router@0.8.2)(solid-js@1.7.3)(solid-start-node@0.2.26)(vite@4.1.2):
     resolution: {integrity: sha512-kne2HZlnSMzsirdnvNs1CsDqBl0L0uvKKt1t4de1CH7JIngyqoMcER97jTE0Ejr84KknANaKAdvJAzZcL7Ueng==}
     hasBin: true
@@ -5118,6 +5106,22 @@ packages:
       wait-on: 6.0.1(debug@4.3.4)
     transitivePeerDependencies:
       - supports-color
+
+  /solid-trpc@0.1.0-sssr.7(@tanstack/solid-query@5.0.0-alpha.20)(@trpc/client@10.34.0)(@trpc/server@10.34.0)(solid-js@1.7.3)(solid-start@0.2.26):
+    resolution: {integrity: sha512-N/iqU4iFIVEWKFjOY+5J4e2qbOW9STy/eEID1gEjj6mm0w9xYmQtKu/UsBNf8W6nSCYSBjH/ttU5fGCe/0q2Dw==}
+    peerDependencies:
+      '@tanstack/solid-query': ^5.0.0-alpha.0
+      '@trpc/client': ^10.0.0-rc.2
+      '@trpc/server': ^10.0.0-rc.2
+      solid-js: ^1.5.3
+      solid-start: ^0.2.1
+    dependencies:
+      '@tanstack/solid-query': 5.0.0-alpha.20(solid-js@1.7.3)
+      '@trpc/client': 10.34.0(@trpc/server@10.34.0)
+      '@trpc/server': 10.34.0
+      solid-js: 1.7.3
+      solid-start: 0.2.26(@solidjs/meta@0.28.2)(@solidjs/router@0.8.2)(solid-js@1.7.3)(solid-start-node@0.2.26)(vite@4.1.2)
+    dev: false
 
   /source-map-js@1.0.2:
     resolution: {integrity: sha512-R0XvVJ9WusLiqTCEiGCmICCMplcCkIwwR11mOSD9CR5u+IXYdiseeEuXCVAjS54zqwkLcPNnmU4OeJ6tUrWhDw==}
@@ -5202,6 +5206,13 @@ packages:
     dependencies:
       inline-style-parser: 0.1.1
     dev: true
+
+  /superjson@1.12.4:
+    resolution: {integrity: sha512-vkpPQAxdCg9SLfPv5GPC5fnGrui/WryktoN9O5+Zif/14QIMjw+RITf/5LbBh+9QpBFb3KNvJth+puz2H8o6GQ==}
+    engines: {node: '>=10'}
+    dependencies:
+      copy-anything: 3.0.5
+    dev: false
 
   /supports-color@5.5.0:
     resolution: {integrity: sha512-QjVjwdXIt408MIiAqCX4oUKsgU2EqAGzs2Ppkm4aQYbjm+ZEWEcW4SfFNTr4uMNZma0ey4f5lgLrkB0aX0QMow==}

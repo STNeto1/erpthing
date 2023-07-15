@@ -4,20 +4,14 @@ import { A } from "@solidjs/router";
 import {
   Accessor,
   createEffect,
+  createMemo,
   createSignal,
   For,
   Show,
+  Suspense,
   type VoidComponent,
 } from "solid-js";
 import { createStore } from "solid-js/store";
-
-import { createOrderMutation } from "rpc/mutations";
-import { searchOrdersQuery, searchUsersQuery } from "rpc/queries";
-import {
-  CreateOrderSchema,
-  createTagSchema,
-  SearchOrdersSchema,
-} from "rpc/zod-schemas";
 
 import { Button } from "~/components/ui/button";
 import {
@@ -45,13 +39,19 @@ import {
 } from "~/components/ui/table";
 import { typographyVariants } from "~/components/ui/typography";
 import { orders } from "~/db/schema";
+import { trpc } from "~/lib/trpc";
 import { cn } from "~/lib/utils";
+import {
+  CreateOrderSchema,
+  createTagSchema,
+  SearchOrdersSchema,
+} from "~/server/api/zod-schemas";
 
 const CreateOrder: VoidComponent<{
   open: Accessor<boolean>;
   setOpen: (open: boolean) => void;
 }> = (props) => {
-  const createOrder = createOrderMutation();
+  const createOrder = trpc.orders.createOrder.useMutation();
 
   const { form, errors, reset } = createForm<CreateOrderSchema>({
     extend: validator({ schema: createTagSchema }),
@@ -104,13 +104,20 @@ const OrdersIndexPage: VoidComponent = () => {
     status: undefined,
   });
 
-  const usersQuery = searchUsersQuery();
-  const searchOrders = searchOrdersQuery(
-    () => searchStore,
-    () => ({
-      suspense: true,
-    }),
-  );
+  const usersQuery = trpc.users.searchUsers.useQuery();
+  const searchOrders = trpc.orders.searchOrders.useQuery(() => searchStore);
+
+  const usersMemo = createMemo(() => {
+    const map = new Map<string, string>();
+
+    if (!usersQuery.data) return map;
+
+    usersQuery.data.forEach((user) => {
+      map.set(user.id, user.name);
+    });
+
+    return map;
+  });
 
   createEffect(() => {
     if (!openCreate()) {
@@ -141,80 +148,70 @@ const OrdersIndexPage: VoidComponent = () => {
         <CreateOrder open={openCreate} setOpen={setOpenCreate} />
       </div>
 
-      <div class="flex flex-col gap-2">
-        <h4
-          class={cn(
-            typographyVariants({
-              variant: "small",
-            }),
-          )}
-        >
-          Search
-        </h4>
-        <div class="flex gap-2">
-          <Input
-            id="description"
-            name="description"
-            type="text"
-            placeholder="Order 1"
-            class="w-full"
-            value={searchStore.description}
-            onInput={(e) => setSearchStore("description", e.target.value)}
-          />
-
-          <Select
-            class="w-full"
-            value={searchStore.user}
-            onChange={(val) => setSearchStore("user", val)}
-            options={
-              (usersQuery?.data ?? [])
-                .map((item) => item.id)
-                .filter(Boolean) as string[]
-            }
-            placeholder="Select an user"
-            itemComponent={(props) => (
-              <SelectItem item={props.item}>
-                {
-                  (usersQuery?.data ?? []).find(
-                    (item) => item.id === props.item.key,
-                  )?.name
-                }
-              </SelectItem>
+      <Suspense fallback={<p>Loading search...</p>}>
+        <div class="flex flex-col gap-2">
+          <h4
+            class={cn(
+              typographyVariants({
+                variant: "small",
+              }),
             )}
           >
-            <SelectTrigger>
-              <SelectValue<string>>
-                {(state) =>
-                  (usersQuery?.data ?? []).find(
-                    (item) => item.id === state.selectedOption(),
-                  )?.name
-                }
-              </SelectValue>
-            </SelectTrigger>
+            Search
+          </h4>
+          <div class="flex gap-2">
+            <Input
+              id="description"
+              name="description"
+              type="text"
+              placeholder="Order 1"
+              class="w-full"
+              value={searchStore.description}
+              onInput={(e) => setSearchStore("description", e.target.value)}
+            />
 
-            <SelectContent />
-          </Select>
+            <Select
+              class="w-full"
+              // value={searchStore.user}
+              // onChange={(val) => setSearchStore("user", val)}
+              options={Array.from(usersMemo().keys())}
+              placeholder="Select an user"
+              itemComponent={(props) => (
+                <SelectItem item={props.item}>
+                  {usersMemo().get(props.item.key)}
+                </SelectItem>
+              )}
+            >
+              <SelectTrigger>
+                <SelectValue<string>>
+                  {(state) => usersMemo().get(state.selectedOption())}
+                </SelectValue>
+              </SelectTrigger>
 
-          <Select
-            class="w-full"
-            value={searchStore.status}
-            onChange={(val) => setSearchStore("status", val)}
-            options={orders.status.enumValues}
-            placeholder="Select an item"
-            itemComponent={(props) => (
-              <SelectItem item={props.item}>{props.item.key}</SelectItem>
-            )}
-          >
-            <SelectTrigger>
-              <SelectValue<string>>
-                {(state) => state.selectedOption()}
-              </SelectValue>
-            </SelectTrigger>
+              <SelectContent />
+            </Select>
 
-            <SelectContent />
-          </Select>
+            <Select
+              class="w-full"
+              value={searchStore.status}
+              onChange={(val) => setSearchStore("status", val)}
+              options={orders.status.enumValues}
+              placeholder="Select an item"
+              itemComponent={(props) => (
+                <SelectItem item={props.item}>{props.item.key}</SelectItem>
+              )}
+            >
+              <SelectTrigger>
+                <SelectValue<string>>
+                  {(state) => state.selectedOption()}
+                </SelectValue>
+              </SelectTrigger>
+
+              <SelectContent />
+            </Select>
+          </div>
         </div>
-      </div>
+      </Suspense>
 
       <Table>
         <TableHeader>
@@ -228,27 +225,29 @@ const OrdersIndexPage: VoidComponent = () => {
           </TableRow>
         </TableHeader>
         <TableBody>
-          <For each={searchOrders?.data ?? []}>
-            {(elem) => (
-              <TableRow>
-                <TableCell class="w-[20%] font-medium">
-                  {elem.description}
-                </TableCell>
-                <TableCell class="w-[20%]">{elem.user?.name}</TableCell>
-                <TableCell class="">
-                  {elem.total.toLocaleString("en-US", {
-                    style: "currency",
-                    currency: "USD",
-                  })}
-                </TableCell>
-                <TableCell class="">{elem.status}</TableCell>
-                <TableCell class="">{elem.createdAt}</TableCell>
-                <TableCell class="">
-                  <A href={`/orders/${elem.id}`}>View</A>
-                </TableCell>
-              </TableRow>
-            )}
-          </For>
+          <Suspense>
+            <For each={searchOrders?.data ?? []}>
+              {(elem) => (
+                <TableRow>
+                  <TableCell class="w-[20%] font-medium">
+                    {elem.description}
+                  </TableCell>
+                  <TableCell class="w-[20%]">{elem.user?.name}</TableCell>
+                  <TableCell class="">
+                    {elem.total.toLocaleString("en-US", {
+                      style: "currency",
+                      currency: "USD",
+                    })}
+                  </TableCell>
+                  <TableCell class="">{elem.status}</TableCell>
+                  <TableCell class="">{elem.createdAt}</TableCell>
+                  <TableCell class="">
+                    <A href={`/orders/${elem.id}`}>View</A>
+                  </TableCell>
+                </TableRow>
+              )}
+            </For>
+          </Suspense>
         </TableBody>
       </Table>
     </section>

@@ -1,6 +1,4 @@
 // @refresh reload
-import { QueryProvider } from "@prpc/solid";
-import { QueryClient } from "@tanstack/solid-query";
 import { Suspense } from "solid-js";
 import {
   Body,
@@ -15,9 +13,9 @@ import {
   Title,
 } from "solid-start";
 
-import "./root.css";
+import { queryClient, trpc } from "~/lib/trpc";
 
-const queryClient = new QueryClient();
+import "./root.css";
 
 export default function Root() {
   return (
@@ -31,7 +29,7 @@ export default function Root() {
         <Link rel="icon" href="/favicon.ico" />
       </Head>
       <Body>
-        <QueryProvider queryClient={queryClient}>
+        <trpc.Provider queryClient={queryClient}>
           <Suspense>
             <ErrorBoundary>
               <Routes>
@@ -39,7 +37,7 @@ export default function Root() {
               </Routes>
             </ErrorBoundary>
           </Suspense>
-        </QueryProvider>
+        </trpc.Provider>
         <Scripts />
       </Body>
     </Html>
