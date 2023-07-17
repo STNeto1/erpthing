@@ -4,11 +4,14 @@ import { BsThreeDots } from "solid-icons/bs";
 import {
   Accessor,
   createEffect,
+  createMemo,
   createSignal,
   For,
   Show,
+  Suspense,
   type VoidComponent,
 } from "solid-js";
+import { createStore } from "solid-js/store";
 import { useNavigate } from "solid-start";
 
 import { Alert, AlertDescription, AlertTitle } from "~/components/ui/alert";
@@ -31,6 +34,13 @@ import { FormItem, FormLabel, FormMessage } from "~/components/ui/form";
 import { Input } from "~/components/ui/input";
 import { Label } from "~/components/ui/label";
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "~/components/ui/select";
+import {
   Table,
   TableBody,
   TableCell,
@@ -45,6 +55,7 @@ import { cn } from "~/lib/utils";
 import {
   createItemSchema,
   CreateItemSchema,
+  SearchItemsSchema,
   updateItemSchema,
   UpdateItemSchema,
 } from "~/server/api/zod-schemas";
@@ -53,6 +64,8 @@ const CreateItemForm: VoidComponent<{
   open: Accessor<boolean>;
   setOpen: (open: boolean) => void;
 }> = (props) => {
+  const context = trpc.useContext();
+
   const createItem = trpc.items.createItem.useMutation();
   const searchTags = trpc.tags.searchTags.useQuery();
 
@@ -72,6 +85,7 @@ const CreateItemForm: VoidComponent<{
 
       reset();
       setSelectedTags([]);
+      context.items.invalidate();
       props.setOpen(false);
     },
   });
@@ -190,6 +204,8 @@ const UpdateItemForm: VoidComponent<{
   data: UpdateItem;
   onCompleted: () => void;
 }> = (props) => {
+  const context = trpc.useContext();
+
   const updateItem = trpc.items.updateItem.useMutation();
   const searchTags = trpc.tags.searchTags.useQuery();
 
@@ -216,6 +232,7 @@ const UpdateItemForm: VoidComponent<{
       await updateItem.mutateAsync(data);
 
       reset();
+      context.items.invalidate();
       props.onCompleted();
     },
   });
@@ -330,7 +347,17 @@ const ItemsIndexPage: VoidComponent = () => {
   const [openCreate, setOpenCreate] = createSignal(false);
   const [isUpdating, setIsUpdating] = createSignal<UpdateItem | null>(null);
 
-  const searchItems = trpc.items.searchItems.useQuery();
+  const [searchStore, setSearchStore] = createStore<SearchItemsSchema>({
+    description: undefined,
+    user: undefined,
+  });
+
+  const usersQuery = trpc.users.searchUsers.useQuery();
+  const searchItems = trpc.items.searchItems.useQuery(() => ({
+    description: searchStore.description,
+    user: searchStore.user,
+  }));
+
   const deleteItem = trpc.items.deleteItem.useMutation();
 
   const handleStartUpdate = (id: string) => {
@@ -345,10 +372,16 @@ const ItemsIndexPage: VoidComponent = () => {
     searchItems.refetch();
   };
 
-  createEffect(() => {
-    if (!openCreate()) {
-      searchItems.refetch();
-    }
+  const usersMemo = createMemo(() => {
+    const map = new Map<string, string>();
+
+    if (!usersQuery.data) return map;
+
+    usersQuery.data.forEach((user) => {
+      map.set(user.id, user.name);
+    });
+
+    return map;
   });
 
   return (
@@ -374,6 +407,52 @@ const ItemsIndexPage: VoidComponent = () => {
         <CreateItemForm open={openCreate} setOpen={setOpenCreate} />
       </div>
 
+      <Suspense fallback={<p>Loading search...</p>}>
+        <div class="flex flex-col gap-2">
+          <h4
+            class={cn(
+              typographyVariants({
+                variant: "small",
+              }),
+            )}
+          >
+            Search
+          </h4>
+          <div class="flex gap-2">
+            <Input
+              id="description"
+              name="description"
+              type="text"
+              placeholder="Item 1"
+              class="w-full"
+              value={searchStore.description}
+              onInput={(e) => setSearchStore("description", e.target.value)}
+            />
+
+            <Select
+              class="w-full"
+              // value={searchStore.user}
+              // onChange={(val) => setSearchStore("user", val)}
+              options={Array.from(usersMemo().keys())}
+              placeholder="Select an user"
+              itemComponent={(props) => (
+                <SelectItem item={props.item}>
+                  {usersMemo().get(props.item.key)}
+                </SelectItem>
+              )}
+            >
+              <SelectTrigger>
+                <SelectValue<string>>
+                  {(state) => usersMemo().get(state.selectedOption())}
+                </SelectValue>
+              </SelectTrigger>
+
+              <SelectContent />
+            </Select>
+          </div>
+        </div>
+      </Suspense>
+
       <Table>
         <TableHeader>
           <TableRow>
@@ -388,56 +467,62 @@ const ItemsIndexPage: VoidComponent = () => {
           </TableRow>
         </TableHeader>
         <TableBody>
-          <For each={searchItems?.data ?? []}>
-            {(elem) => (
-              <TableRow>
-                <TableCell class="w-[20%] font-medium">{elem.name}</TableCell>
-                <TableCell class="w-[30%] font-medium">
-                  {elem.description}
-                </TableCell>
+          <Suspense fallback={<p>Loading items...</p>}>
+            <For each={searchItems?.data ?? []}>
+              {(elem) => (
+                <TableRow>
+                  <TableCell class="w-[20%] font-medium">{elem.name}</TableCell>
+                  <TableCell class="w-[30%] font-medium">
+                    {elem.description}
+                  </TableCell>
 
-                <TableCell class="w-[12.5%] font-medium">
-                  {elem.user.name}
-                </TableCell>
-                <TableCell class="w-[7.5%] font-medium">{elem.price}</TableCell>
-                <TableCell class="w-[7.5%] font-medium">{elem.stock}</TableCell>
-                <TableCell class="w-[5%] font-medium">
-                  <DropdownMenu>
-                    <DropdownMenuTrigger class="flex items-center ">
-                      <BsThreeDots class="h-5 w-5" />
-                    </DropdownMenuTrigger>
+                  <TableCell class="w-[12.5%] font-medium">
+                    {elem.user.name}
+                  </TableCell>
+                  <TableCell class="w-[7.5%] font-medium">
+                    {elem.price}
+                  </TableCell>
+                  <TableCell class="w-[7.5%] font-medium">
+                    {elem.stock}
+                  </TableCell>
+                  <TableCell class="w-[5%] font-medium">
+                    <DropdownMenu>
+                      <DropdownMenuTrigger class="flex items-center ">
+                        <BsThreeDots class="h-5 w-5" />
+                      </DropdownMenuTrigger>
 
-                    <DropdownMenuPortal>
-                      <DropdownMenuContent class="w-40">
-                        <DropdownMenuItem
-                          class="py-0"
-                          onSelect={() => navigate(`/items/${elem.id}`)}
-                        >
-                          <DropdownMenuLabel>Access</DropdownMenuLabel>
-                        </DropdownMenuItem>
+                      <DropdownMenuPortal>
+                        <DropdownMenuContent class="w-40">
+                          <DropdownMenuItem
+                            class="py-0"
+                            onSelect={() => navigate(`/items/${elem.id}`)}
+                          >
+                            <DropdownMenuLabel>Access</DropdownMenuLabel>
+                          </DropdownMenuItem>
 
-                        <DropdownMenuItem
-                          class="py-0"
-                          onSelect={() => handleStartUpdate(elem.id)}
-                          disabled={deleteItem.isPending}
-                        >
-                          <DropdownMenuLabel>Edit</DropdownMenuLabel>
-                        </DropdownMenuItem>
+                          <DropdownMenuItem
+                            class="py-0"
+                            onSelect={() => handleStartUpdate(elem.id)}
+                            disabled={deleteItem.isPending}
+                          >
+                            <DropdownMenuLabel>Edit</DropdownMenuLabel>
+                          </DropdownMenuItem>
 
-                        <DropdownMenuItem
-                          class="py-0"
-                          onSelect={() => handleDelete(elem.id)}
-                          disabled={deleteItem.isPending}
-                        >
-                          <DropdownMenuLabel>Delete</DropdownMenuLabel>
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenuPortal>
-                  </DropdownMenu>
-                </TableCell>
-              </TableRow>
-            )}
-          </For>
+                          <DropdownMenuItem
+                            class="py-0"
+                            onSelect={() => handleDelete(elem.id)}
+                            disabled={deleteItem.isPending}
+                          >
+                            <DropdownMenuLabel>Delete</DropdownMenuLabel>
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenuPortal>
+                    </DropdownMenu>
+                  </TableCell>
+                </TableRow>
+              )}
+            </For>
+          </Suspense>
         </TableBody>
       </Table>
       <Show when={deleteItem.error}>

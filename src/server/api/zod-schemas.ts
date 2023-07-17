@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-import { DOrder, orders } from "~/db/schema";
+import { orders } from "~/db/schema";
 
 // ----- Tag -----
 export const createTagSchema = z.object({
@@ -19,6 +19,12 @@ export const deleteTagSchema = z.object({
 });
 
 // ----- Item -----
+export const searchItemsSchema = z.object({
+  description: z.optional(z.string()),
+  user: z.optional(z.string()),
+});
+export type SearchItemsSchema = z.infer<typeof searchItemsSchema>;
+
 export const createItemSchema = z.object({
   name: z.string().min(4),
   description: z.string().min(4),

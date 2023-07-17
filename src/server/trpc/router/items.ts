@@ -1,4 +1,4 @@
-import { and, eq, inArray, isNull, sql } from "drizzle-orm";
+import { and, eq, inArray, isNull, like, SQL, sql } from "drizzle-orm";
 import { ulid } from "ulid";
 import { z } from "zod";
 
@@ -8,20 +8,33 @@ import { items, itemsToTags, tags } from "~/db/schema";
 import {
   createItemSchema,
   deleteItemSchema,
+  searchItemsSchema,
   updateItemSchema,
 } from "~/server/api/zod-schemas";
 import { protectedProcedure, router } from "../utils";
 
 export default router({
-  searchItems: protectedProcedure.query(async ({}) => {
-    return db.query.items.findMany({
-      where: isNull(items.deletedAt),
-      with: {
-        user: true,
-        tags: true,
-      },
-    });
-  }),
+  searchItems: protectedProcedure
+    .input(searchItemsSchema)
+    .query(async ({ input }) => {
+      const where: SQL[] = [isNull(items.deletedAt)];
+
+      if (input.description) {
+        where.push(like(items.description, `%${input.description}%`));
+      }
+
+      if (input.user) {
+        where.push(eq(items.userID, input.user));
+      }
+
+      return db.query.items.findMany({
+        where: and(...where),
+        with: {
+          user: true,
+          tags: true,
+        },
+      });
+    }),
   showItem: protectedProcedure
     .input(z.object({ id: z.string() }))
     .query(async ({ input }) => {
