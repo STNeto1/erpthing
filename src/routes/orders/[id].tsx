@@ -74,7 +74,7 @@ const ShowOrderPage: VoidComponent = () => {
   }));
   const [updatingItem, setUpdatingItem] = createSignal<string | null>(null);
 
-  const searchItems = trpc.items.searchItems.useQuery();
+  const searchItems = trpc.items.searchItems.useQuery(() => ({}));
 
   const markOrderAsPaid = trpc.orders.updateOrderAsPaid.useMutation();
   const markOrderAsCancelled = trpc.orders.updateOrderAsCancelled.useMutation();
@@ -460,7 +460,13 @@ const ShowOrderPage: VoidComponent = () => {
                   </Alert>
                 </Match>
 
-                <Match when={!updatingItem() && showAdd()}>
+                <Match
+                  when={
+                    !updatingItem() &&
+                    showAdd() &&
+                    itemQuery.data?.status === "pending"
+                  }
+                >
                   <h4
                     class={cn(
                       typographyVariants({

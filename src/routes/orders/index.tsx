@@ -42,6 +42,7 @@ import { orders } from "~/db/schema";
 import { trpc } from "~/lib/trpc";
 import { cn } from "~/lib/utils";
 import {
+  createOrderSchema,
   CreateOrderSchema,
   createTagSchema,
   SearchOrdersSchema,
@@ -54,7 +55,7 @@ const CreateOrder: VoidComponent<{
   const createOrder = trpc.orders.createOrder.useMutation();
 
   const { form, errors, reset } = createForm<CreateOrderSchema>({
-    extend: validator({ schema: createTagSchema }),
+    extend: validator({ schema: createOrderSchema }),
     onSubmit: async (data) => {
       await createOrder.mutateAsync(data);
 
